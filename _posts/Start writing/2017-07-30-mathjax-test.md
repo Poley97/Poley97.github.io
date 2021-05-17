@@ -18,10 +18,10 @@ $$
 
 $$
 \text{for OTP : $\qquad$ if }\quad E(k,\:m)=c\\
-\begin{align}
-k\oplus m &= c \\
-k &= m\oplus c
-\end{align}
+\begin{align*}
+&k\oplus m = c \\
+&k = m\oplus c
+\end{align*}
 \\
 \#\{\;k \in \mathscr K : \quad E(k,\:m)=c \;\}=1 \quad \forall m,\:c
 $$

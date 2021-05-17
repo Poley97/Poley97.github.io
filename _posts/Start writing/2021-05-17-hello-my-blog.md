@@ -1,10 +1,10 @@
 ---
 layout: post
-title: 'Hello Jekyll'
-date: 2017-04-18
-author: Jekyll
-cover: 'http://on2171g4d.bkt.clouddn.com/jekyll-banner.png'
-tags: jekyll
+title: 'Hello my blog'
+date: 2021-05-17
+author: Poley
+cover: 'assets/img/mycat2.jpg'
+tags: start
 ---
 
 > Transform your plain text into static websites and blogs.
