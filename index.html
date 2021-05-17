@@ -1,12 +1,13 @@
 ---
 layout: default
-home-title: H2O Theme For Jekyll
-description: 或许是最漂亮的Jekyll主题
+home-title: Poley的个人网站
+description: Poley的猫咪——潇潇
+header-img: assets/img/banner.jpg
 ---
 
 {% include header.html %}
 
-<div
+<divs
     class="g-banner home-banner {{ site.theme-color | prepend: 'banner-theme-' }}"
     data-theme="{{ site.theme-color }}"
     style="{% if page.header-img %}background: url({{ page.header-img | relative_url }}) no-repeat center center; background-size: cover;{% endif %}"
