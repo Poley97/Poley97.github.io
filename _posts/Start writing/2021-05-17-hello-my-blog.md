@@ -3,7 +3,7 @@ layout: post
 title: 'Hello my blog'
 date: 2021-05-17
 author: Poley
-cover: '../../assets/img/mycat3.jpg'
+cover: '../assets/img/mycat3.jpg'
 tags: 
 ---
 

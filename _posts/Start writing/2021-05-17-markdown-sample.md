@@ -3,7 +3,7 @@ layout: post
 title: 'Markdown sample'
 date: 2021-05-17
 author: Poley
-cover: 'assets/img/mycat2.jpg'
+cover: '../assets/img/mycat2.jpg'
 tags: markdown
 ---
 
