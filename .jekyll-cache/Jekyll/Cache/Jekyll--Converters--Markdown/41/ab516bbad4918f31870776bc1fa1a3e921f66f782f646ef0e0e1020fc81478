@@ -1,0 +1,82 @@
+I"�&<blockquote>
+  <p>参考代码 https://github.com/skyhehe123/SA-SSD
+参考文献 CVPR 2020 Structure Aware Single-stage 3D Object Detection from Point Cloud
+论文地址 https://openaccess.thecvf.com/content_CVPR_2020/html/He_Structure_Aware_Single-Stage_3D_Object_Detection_From_Point_Cloud_CVPR_2020_paper.html</p>
+</blockquote>
+
+<p>今天来阅读CVPR2020 的SA-SSD代码，代码基于mmdet框架实现。正好学习一下如何使用mmdet自定义目标检测网络。</p>
+
+<p>由于mmcv的网络定义格式，网络结构都写在config文件里，因此不妨就从config文件中来一层层的观察网络的结构。</p>
+
+<p>首先是model，config如下</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">model</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="nb">type</span><span class="o">=</span><span class="s">'SingleStageDetector'</span><span class="p">,</span>
+    <span class="n">backbone</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s">'SimpleVoxel'</span><span class="p">,</span>
+        <span class="n">num_input_features</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">use_norm</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">num_filters</span><span class="o">=</span><span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">],</span>
+        <span class="n">with_distance</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
+
+    <span class="n">neck</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s">'SpMiddleFHD'</span><span class="p">,</span>
+        <span class="n">output_shape</span><span class="o">=</span><span class="p">[</span><span class="mi">40</span><span class="p">,</span> <span class="mi">1600</span><span class="p">,</span> <span class="mi">1408</span><span class="p">],</span>
+        <span class="n">num_input_features</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">num_hidden_features</span><span class="o">=</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">bbox_head</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s">'SSDRotateHead'</span><span class="p">,</span>
+        <span class="n">num_class</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="c1">#len(['Car', 'Pedestrian', 'Cyclist']),
+</span>        <span class="n">num_output_filters</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+        <span class="n">num_anchor_per_loc</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">use_sigmoid_cls</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">encode_rad_error_by_sin</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">use_direction_classifier</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">box_code_size</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">extra_head</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s">'PSWarpHead'</span><span class="p">,</span>
+        <span class="n">grid_offsets</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">40.</span><span class="p">),</span>
+        <span class="n">featmap_stride</span><span class="o">=</span><span class="p">.</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+        <span class="n">num_class</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">num_parts</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+</code></pre></div></div>
+
+<p>可以看到，backbone中使用了<strong>SimpleVoxel</strong>，实际上，SA-SSD中提出的Input data representation指出，将输入点放到稀疏的3Dtensor中并逐体素的提取特征非常的浪费时间。因此使用了简单的表示方法，即通过floor计算每个点归属的体素，并将这个点的4维信息作为这个体素的特征，如果有新点被划分到同一体素内，则直接替换。</p>
+
+<p>在代码实现中，实际上是用了平均的方法来代替。并将Input data representation 单独作为网络的backbone，而真正的特征提取工作都在neck中。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">SimpleVoxel</span><span class="p">(</span><span class="n">nn</span><span class="p">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">num_input_features</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                 <span class="n">use_norm</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                 <span class="n">num_filters</span><span class="o">=</span><span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">128</span><span class="p">],</span>
+                 <span class="n">with_distance</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                 <span class="n">name</span><span class="o">=</span><span class="s">'VoxelFeatureExtractor'</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SimpleVoxel</span><span class="p">,</span> <span class="bp">self</span><span class="p">).</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="p">.</span><span class="n">num_input_features</span> <span class="o">=</span> <span class="n">num_input_features</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">num_voxels</span><span class="p">):</span>
+        <span class="c1">#相当于没有进行vef，直接对每个voxel做归一化处理。
+</span>        <span class="c1">#return features
+</span>        <span class="c1"># features: [concated_num_points, num_voxel_size, 3(4)]
+</span>        <span class="c1"># num_voxels: [concated_num_points]
+</span>        <span class="n">points_mean</span> <span class="o">=</span> <span class="n">features</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="bp">self</span><span class="p">.</span><span class="n">num_input_features</span><span class="p">].</span><span class="nb">sum</span><span class="p">(</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_voxels</span><span class="p">.</span><span class="n">type_as</span><span class="p">(</span><span class="n">features</span><span class="p">).</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">points_mean</span><span class="p">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p>在代码的neck部分中，实际上包含了backbone,rpn以及auxiliary network的全部内容（包含perdictor）。连接backbone和auxliary的模块为<strong>tensor2points</strong>，具体内容还没有完全理解。一会需要通过调试再看一下。</p>
+
+<p>backbone的内容包括在文件<strong>mmdet/models/necks/cmn.py</strong>，其中<strong>SpMiddleFHD</strong>包含了3D稀疏卷积backbone <strong>Vxnet</strong>，辅助网络结构、预测以及target的生成。后续的真正的neck，也就是2D卷积部分，则由<strong>BEVNet</strong>来实现。</p>
+
+<p>主网络的head在<strong>mmdet/models/single_stage_heads/ssd_rotate_head.py</strong>中，继承了<a href="https://www.mdpi.com/1424-8220/18/10/3337">SECOND</a>中的编码方法，主要是角度使正弦余弦值来进行编码，以及使用一个简单的分类器来预测角度。即目标框的yaw是否大于0来决定分类器的类别。</p>
+
+<p>最后加入了一个extrahead <strong>PSWarpHead</strong>，用来解决分类和回归中心不对齐的问题。后面这些还需要进入调试环境进一步熟悉一下。故先没有写出详细的解读。</p>
+:ET
