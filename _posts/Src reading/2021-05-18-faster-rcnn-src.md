@@ -4,7 +4,7 @@ title: 'Faster RCNN 源码阅读'
 date: 2021-05-18
 author: Poley
 cover: '../assets/img/mycat3.jpg'
-tags: 
+tags: 目标检测，深度学习，FasterRCNN
 ---
 
 > 代码参考 https://github.com/chenyuntc/simple-faster-rcnn-pytorch
