@@ -1,4 +1,4 @@
-I"�<blockquote>
+I"�<blockquote>
   <p>论文链接 https://arxiv.org/abs/2008.10032</p>
 
   <p>参考博客 https://zhuanlan.zhihu.com/p/339126633</p>
@@ -12,7 +12,7 @@
 
 <p>在长尾分布的数据集中（例如：LVIS），大部分训练样本来自头部类别（head class），而只有少量样本来自尾部类别（tail class）。因此在训练过程中，来自头部类别的样本会对尾部类别施加过量的负样本梯度，淹没了来自尾部类别自身的正样本梯度。<strong>这种不平衡的学习过程导致分类器倾向于给予尾部类别很低的响应，以降低训练的loss。</strong>如下图所示，我们统计了在 LVIS v1.0 上训练Mask R-CNN过程中，施加在每个类别的分类器上正负样本累计梯度的分布。显然，头部类别获得的正负样本梯度比例接近1.0，而越是稀有的尾部类别，其获得的正负样本梯度的比例就越小。由此带来的结果就是分类的准确率随着样本数的减少而急剧下降，进而严重影响了检测器的性能。</p>
 
-<p><img src="../assets/img/20210520/SeesawLossGradient.png" alt="样本不平衡带来的正负梯度比例失衡" /></p>
+<p><img src="/assets/img/20210520/SeesawLossGradient.png" alt="样本不平衡带来的正负梯度比例失衡" /></p>
 
 <p>#方法</p>
 
@@ -38,5 +38,34 @@ L_{\text {seesaw }}(\mathbf{z})=-\sum_{i=1}^{C} y_{i} \log \left(\widehat{\sigma
 \mathcal{S}_{i j}=\mathcal{M}_{i j} \cdot \mathcal{C}_{i j}
 \end{equation}\)</p>
 
-<p><img src="../assets/img/20210520/SeesawLossCruve.png" alt="样本不平衡带来的正负梯度比例失衡" /></p>
+<p><img src="/assets/img/20210520/SeesawLossCurve.png" alt="" /></p>
+
+<h2 id="mitigation-factor">【Mitigation Factor】</h2>
+<p>$\mathcal{S}_{ij}$的计算方法如下
+\(\begin{equation}
+\mathcal{M}_{i j}=\left\{\begin{array}{cl}
+1, &amp; \text { if } N_{i} \leq N_{j} \\
+\left(\frac{N_{j}}{N_{i}}\right)^{p}, &amp; \text { if } N_{i}&gt;N_{j}
+\end{array}\right.
+\end{equation}\)</p>
+
+<p>也就是说当第$i$类比第$j$类更加高频率地出现时，Seesaw Loss 就会自动根据两类之间不平衡的程度来减少第$i$类对第$j$类施加的负样本梯度。此外，我们在线地累计样本数量，而非使用预先统计的数据集样本分布，这样的设计主要是因为一些高级的样本 sampling 方式会改变数据集的分布（例如：repeat factor sampler, class balanced sampler 等）。在这种情况下，预先统计的方式无法反映训练过程中数据的真实分布。</p>
+
+<h2 id="compensation-factor">【Compensation Factor】</h2>
+<p>为了防止过度减少负样本梯度而带来的分类错误，Seesaw Loss会增加对那些错误分类样本的惩罚。具体来说，如果一个第$i$ 类的样本错误分给了第$j$ 类，Seesaw Loss会根据两类之间的分类置信度的相对比值来适当的增加对第$j$类的惩罚。$\mathcal{C}_{ij}$的计算如下</p>
+
+<h2 id="normalized-linear-activation">【Normalized Linear Activation】</h2>
+<p>受到face recognition，few-shot learning等领域的启发，Seesaw Loss在预测分类logit的时候对weight和feature进行了归一化处理，即</p>
+
+\[\begin{equation}
+\begin{array}{c}
+z=\tau \widetilde{\mathcal{W}}^{T} \tilde{x}+b \\
+\widetilde{\mathcal{W}}_{i}=\frac{\mathcal{W}_{i}}{\left\|\mathcal{W}_{i}\right\|_{2}}, i \in C, \tilde{x}=\frac{x}{\|x\|_{2}}
+\end{array}
+\end{equation}\]
+
+<h2 id="实验结果">【实验结果】</h2>
+
+<p><img src="/assets/img/20210520/SeasawLossResult.png" alt="" /></p>
+
 :ET

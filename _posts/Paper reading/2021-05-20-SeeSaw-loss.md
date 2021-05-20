@@ -85,5 +85,5 @@ $$
 
 ## 【实验结果】
 
-![](/assets/img/20210520/SeesawLossResult.png)
+![](/assets/img/20210520/SeasawLossResult.png)
 
