@@ -1,0 +1,175 @@
+I"�D<h1 id="mmdet-faster-rcnn-fpn源码流程阅读">mmdet faster-rcnn-fpn源码流程阅读</h1>
+<ol>
+  <li>
+    <p>由于debug时，train.py文件不在根目录下，因此需要手动修改一下run/debug configuration 中的working directory。要不跑步起来。</p>
+  </li>
+  <li>
+    <p>使用的数据集是OpenBrand,其格式和coco一样。</p>
+  </li>
+  <li>
+    <p>首先看一下dataset类，bulid完的dataset的每个元素均是一个字典。其中包含四个keys，分别是</p>
+    <ul>
+      <li>img_metas:记录了图像的基本信息，包括路径，文件名，大小，归一化信息，等等。这部分在训练中用不到</li>
+      <li>img：图像信息，torch.tensor</li>
+      <li>gt_bboxes: gt_bboxes信息，没有类别</li>
+      <li>gt_labels：上述gt_bboxes的类别</li>
+    </ul>
+  </li>
+</ol>
+
+<p>config文件中的collect中指定的项就是这四个中的一部分。</p>
+
+<p>通过dataloader collect之后，同样生成一个dict，依旧有上面四个Keys，但是每个Keys内的数据变成了list，list内包含batch内的所有数据。也就是说collect的作用是将原各数据字典的对应内容拼接起来，形成一个大字典。</p>
+
+<p>参数直接使用**kwargs通过字典传参，因此需要注意自己设计函数的时候，形参名要和之前输入数据字典中的keys对应上。</p>
+
+<ol>
+  <li>
+    <p>主干网络</p>
+
+    <p>mmdet的two-stage detector都有一个共同的父类，<strong>TwoStageDetector</strong>，其又是继承了<strong>BaseDetector</strong>得到的。分别在 <strong>/models/detectors/two_stage.py</strong>和 <strong>/models/detectors/base.py</strong>中。浏览 <strong>two_stage.py</strong>的  <strong>forward_train</strong>方法可以看到其源码对two-stage的检测器做了共同的抽象，源码如下</p>
+  </li>
+</ol>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>       <span class="k">def</span> <span class="nf">forward_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">img</span><span class="p">,</span>
+                         <span class="n">img_metas</span><span class="p">,</span>
+                         <span class="n">gt_bboxes</span><span class="p">,</span>
+                         <span class="n">gt_labels</span><span class="p">,</span>
+                         <span class="n">gt_bboxes_ignore</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                         <span class="n">gt_masks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                         <span class="n">proposals</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                         <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+           <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">extract_feat</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+           <span class="n">losses</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+           <span class="c1"># RPN forward and loss
+</span>           <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">with_rpn</span><span class="p">:</span>
+               <span class="n">proposal_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">train_cfg</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">'rpn_proposal'</span><span class="p">,</span>
+                                                 <span class="bp">self</span><span class="p">.</span><span class="n">test_cfg</span><span class="p">.</span><span class="n">rpn</span><span class="p">)</span>
+               <span class="n">rpn_losses</span><span class="p">,</span> <span class="n">proposal_list</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">rpn_head</span><span class="p">.</span><span class="n">forward_train</span><span class="p">(</span>
+                   <span class="n">x</span><span class="p">,</span>
+                   <span class="n">img_metas</span><span class="p">,</span>
+                   <span class="n">gt_bboxes</span><span class="p">,</span>
+                   <span class="n">gt_labels</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                   <span class="n">gt_bboxes_ignore</span><span class="o">=</span><span class="n">gt_bboxes_ignore</span><span class="p">,</span>
+                   <span class="n">proposal_cfg</span><span class="o">=</span><span class="n">proposal_cfg</span><span class="p">)</span>
+               <span class="n">losses</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">rpn_losses</span><span class="p">)</span>
+           <span class="k">else</span><span class="p">:</span>
+               <span class="n">proposal_list</span> <span class="o">=</span> <span class="n">proposals</span>
+
+           <span class="n">roi_losses</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">roi_head</span><span class="p">.</span><span class="n">forward_train</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">img_metas</span><span class="p">,</span> <span class="n">proposal_list</span><span class="p">,</span>
+                                                    <span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">gt_labels</span><span class="p">,</span>
+                                                    <span class="n">gt_bboxes_ignore</span><span class="p">,</span> <span class="n">gt_masks</span><span class="p">,</span>
+                                                    <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+           <span class="n">losses</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">roi_losses</span><span class="p">)</span>
+
+           <span class="k">return</span> <span class="n">losses</span>
+</code></pre></div></div>
+
+<p>可以看到，流程很抽象。先提取特征，再送入rpn得到proposal_list以及rpn_loss（也可以使用custom的proposal，当不想使用rpn的时候，这时候自然也没有loss了）。之后将proposal送入roi_head,得到网络最后的Loss。此时就完成了网络的前向过程。</p>
+
+<ol>
+  <li>
+    <p>特征提取</p>
+
+    <p>随着程序，首先是<strong>extract_feat()</strong>方法。这个方法的内容如下</p>
+    <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="k">def</span> <span class="nf">extract_feat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+     <span class="s">"""Directly extract features from the backbone+neck."""</span>
+     <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">backbone</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+     <span class="k">if</span> <span class="bp">self</span><span class="p">.</span><span class="n">with_neck</span><span class="p">:</span>
+         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="p">.</span><span class="n">neck</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+     <span class="k">return</span> <span class="n">x</span>
+</code></pre></div>    </div>
+    <p>同样非常简洁，就是输入经过backbone，再经过neck来进一步提取特征。但是需要具体看一下参数的传递形式。</p>
+
+    <p>网络的backbone是resnet，这里输出的是4个stage的输出（在config文件中定义）。最终一个<strong>tuple</strong>的形式输出，其中包含了4个stage的特征图。</p>
+
+    <p>之后进入fpn的部分。输入时直接从backbone中拿过来的tuple，fpn中也对tuple中的各个特征图依次处理。需要注意的是，fpn的inchannel是定义在config中的，需要和resnet的输出特征通道数对应，并且是需要按顺序写的。</p>
+
+    <p>fpn的输入输出层数可以通过多个level变量灵活调控。这部分由于一般不做过多修改，所以没有细看。</p>
+
+    <p>这部分代码也比较简单，即对所有输入先做一个lateral_conv横向连接，然后在建立一个top-down path，其中的超分辨率用插值实现。高层的通过插值扩大featuremap尺寸再和低层相加，层层累加，最后每层通过一个conv得到输出。输出同样转换为一个元组的形式。代码如下，中间还有一段add extra levels的代码，性质差不多，就是添加一个额外的maxpool或者额外的卷积。</p>
+
+    <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+     <span class="s">"""Forward function."""</span>
+     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">in_channels</span><span class="p">)</span>
+     <span class="n">laterals</span> <span class="o">=</span> <span class="p">[</span>
+             <span class="n">lateral_conv</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="p">.</span><span class="n">start_level</span><span class="p">])</span>
+             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">lateral_conv</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">lateral_convs</span><span class="p">)</span>
+         <span class="p">]</span>
+
+     <span class="c1"># build top-down path
+</span>     <span class="n">used_backbone_levels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">laterals</span><span class="p">)</span>
+     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">used_backbone_levels</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+         <span class="c1"># In some cases, fixing `scale factor` (e.g. 2) is preferred, but
+</span>         <span class="c1">#  it cannot co-exist with `size` in `F.interpolate`.
+</span>         <span class="k">if</span> <span class="s">'scale_factor'</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">.</span><span class="n">upsample_cfg</span><span class="p">:</span>
+             <span class="n">laterals</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">F</span><span class="p">.</span><span class="n">interpolate</span><span class="p">(</span><span class="n">laterals</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                             <span class="o">**</span><span class="bp">self</span><span class="p">.</span><span class="n">upsample_cfg</span><span class="p">)</span>
+         <span class="k">else</span><span class="p">:</span>
+             <span class="n">prev_shape</span> <span class="o">=</span> <span class="n">laterals</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">].</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+             <span class="n">laterals</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">F</span><span class="p">.</span><span class="n">interpolate</span><span class="p">(</span>
+                 <span class="n">laterals</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">prev_shape</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="p">.</span><span class="n">upsample_cfg</span><span class="p">)</span>
+
+     <span class="c1"># build outputs
+</span>     <span class="c1"># part 1: from original levels
+</span>     <span class="n">outs</span> <span class="o">=</span> <span class="p">[</span>
+         <span class="bp">self</span><span class="p">.</span><span class="n">fpn_convs</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">laterals</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">used_backbone_levels</span><span class="p">)</span>
+     <span class="p">]</span>
+
+     <span class="p">...</span>
+     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">outs</span><span class="p">)</span>
+
+</code></pre></div>    </div>
+  </li>
+  <li>
+    <p>RPN</p>
+
+    <p>fpn看完了，接下来就是rpn,faster-rcnn用的是RPNHEAD，这部分代码在 <strong>/model/dense_heads/rpn_head</strong>中，可以看到<strong>RPNHEAD</strong>继承自两个父类<strong>RPNTestMixin，AnchorHead</strong>,其中前者好像是一个测试版的RPN,而后者应该是所有AnchorHead抽象出来的一个共同父类，其中包括了anchor的大部分内容，包括<strong>anchor_generator</strong> , <strong>bbox_coder</strong> , <strong>loss_cls</strong> ,<strong>loss_bbox</strong> 等anchor方法的核心内容，anchor分类和回归目标的<strong>assigner</strong>也在这里被定义。上述几个关键部分都需要在config文件中定义。</p>
+
+    <p>而RPNHEAD本身的结构就只是简单的定义了conv，relu然后再加上一个cls层，一个reg层。没啥好说的，loss的计算直接继承父类(<strong>AnchorHead</strong>)的<strong>loss()</strong>方法。</p>
+
+    <p>而<strong>AnchorHead</strong>由继承一个测试类<strong>BBoxTestMinxin</strong>以及<strong>BaseDenseHead</strong>,关键的训练方法 <strong>forward_train</strong>就继承自后者。具体rpn使用的forward方法是<strong>forward_single</strong>，用于计算单featuremap上的rpn结果。之后将其包装为一个元组+list的形式输出。元组中两项对应score和bbox_pred，各为一个List,其中包括fpn每个特征图对应的输出。之后使用<strong>AnchorHead</strong>来输出Loss和得到proposal。注意，如果config文件中没有proposal的config项，这里就不会输出proposal。</p>
+
+    <p>得到的proposal是一个list，长度为batch_size，每个元素都是一个[1000,5]的tensor，其中1000是config文件中预先定义的nms后的proposal数量，5是Bbox位置和置信度。</p>
+  </li>
+  <li>
+    <p>HEAD</p>
+
+    <p>之后进入到了网络的最后一个环节，roihead。</p>
+
+    <p>在ROI特征的提取中，主要内容在 <strong>/models/roi_heads_roi_extractors_single_level_roi_extractor.py</strong>中，其根据roi的尺度自动将roi分配到不同level的featuremap上做roipooling提取特征。
+进入类StandardRoIHead,中，使用forward_train函数来进行bbox的assigner和sample，之后输出loss。比较简单。</p>
+
+    <p>至此完成了整个网络的流程。</p>
+  </li>
+</ol>
+
+<h1 id="自定义模型">自定义模型</h1>
+
+<p>如果要在faster-rcnn的代码上做修改，那么我初步认为应该遵从一下方法。</p>
+
+<h2 id="修改网络结构">修改网络结构</h2>
+
+<ol>
+  <li>
+    <p>继承需要修改的类，这样可以直接使用现有的loss计算方法等等。</p>
+  </li>
+  <li>
+    <p>对于要额外新加的通路，在需要在两个模块之间传递时，需要处理好他们的输入输出格式，以对应上。</p>
+  </li>
+  <li>
+    <p>loss函数在forward_train函数中就可以找到，这个函数在每一个大类（比如backbone，neck）的每个子类（比如resnet,fpn）中都有（继承或者重新定义），是训练中的必经部分。应对类别不平衡等问题时，可以直接针对其中的loss计算进行修改。</p>
+  </li>
+  <li>
+    <p>如果要加入global context，即将整个feature map作为一个roi，计算特征并cat到别的roi上，那么应该可以直接在roihead模块内部做修改。</p>
+  </li>
+</ol>
+
+<h2 id="todo">TODO</h2>
+
+<p>有很多基于mmdet的project，可以参考一下他们是如何基于mmdet框架来定义自己的网络结构的。</p>
+
+:ET
