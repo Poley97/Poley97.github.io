@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 'Seesaw Loss for Long-Tailed Instance Segmentation'
+title: 'Cascade R-CNN: Delving into High Quality Object Detection'
 date: 2021-05-20
 author: Poley
 cover: '/assets/img/20210522/CascadeRCNN.png'
