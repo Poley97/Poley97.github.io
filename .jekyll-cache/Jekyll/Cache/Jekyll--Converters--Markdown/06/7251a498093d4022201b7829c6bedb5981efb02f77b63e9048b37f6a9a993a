@@ -1,0 +1,13 @@
+I"�<blockquote>
+  <p>论文链接 ： https://openaccess.thecvf.com/content_CVPRW_2019/papers/WAD/Paigwar_Attentional_PointNet_for_3D-Object_Detection_in_Point_Clouds_CVPRW_2019_paper.pdf</p>
+</blockquote>
+
+<blockquote>
+  <p>参考博客 :</p>
+</blockquote>
+
+<p>所提出的网络主要包含以下部分：<strong>Context Network, Recurrent Localization Network, 3D Transformer, and Resampler, Classifier, 3D Box Estimation.</strong> 并且设计了一个独特的loss。</p>
+
+<h2 id="context-network">Context Network</h2>
+<p>输入一个cropped region（$12m\times 12m$）的3D点。和一个点云的2D垂直投影，在$120\times 120$的cell里。使用简化版的PointNet，也就是没有T-Net的来提取特征。</p>
+:ET

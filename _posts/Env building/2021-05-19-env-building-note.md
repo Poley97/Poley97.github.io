@@ -31,3 +31,13 @@ tags: 环境配置
     import pycocotools
     ```
     因此如果不更新，往往不会提示不能Import这个包，而是出现一些其他的错误。
+
+2. mmdetection: RuntimeError: nms is not compiled with GPU support
+
+安装配置mmdetection2.0后运行出现错误：RuntimeError: nms is not compiled with GPU support，出现错误的原因是编译过mmdetection后又重装了pytorch和torchvision所以需要重新编译mmdetection并且编译之前记得将mmdetection下的build文件删除
+
+实际是因为登陆节点没有gpu，所以mmcv安装的时候没有用cuda编译。需要到计算节点去编译。
+
+注意，如果已经安装过mmcv的，会在~/.cache/pip中留下缓存，这使得下一次安装不再进行重新编译。这样即使进入了gpu环境安装也不行，记得把缓存删了。
+
+多卡训练需要用mmdet提供的脚本，而不能直接使用train.py进行。
