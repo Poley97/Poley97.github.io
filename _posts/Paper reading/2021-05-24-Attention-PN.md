@@ -8,7 +8,7 @@ tags: 论文阅读
 ---
 
 >论文链接：http://openaccess.thecvf.com/content_cvpr_2018/html/Xie_Attentional_ShapeContextNet_for_CVPR_2018_paper.html
->参考博客： 
+>参考博客： https://blog.csdn.net/qq_39732684/article/details/105542845
 
 # Abstract
 

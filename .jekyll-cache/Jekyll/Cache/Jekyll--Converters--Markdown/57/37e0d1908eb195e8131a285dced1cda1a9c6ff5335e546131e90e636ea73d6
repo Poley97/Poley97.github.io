@@ -1,0 +1,7 @@
+I"�<blockquote>
+  <p>论文链接： https://arxiv.org/abs/1810.13125</p>
+  <h1 id="introduction">Introduction</h1>
+  <p>传统的non-local模块只关系了时间和空间上的关系，而没有关心channel之间的关系。而往往在视频中，不同目标之间的关系是体现在不同channel中的，比如脚和足球（见下图）。因此，在non-local中引入channel信息是非常关键的，这就是本文中提出的 compact generalized non-local (CGNL) module。</p>
+</blockquote>
+
+:ET

@@ -6,7 +6,7 @@ author: Poley
 cover: '/assets/img/20210522/CascadeRCNN.png'
 tags: 论文阅读
 ---
-
+> 论文链接：https://openaccess.thecvf.com/content_cvpr_2018/html/Cai_Cascade_R-CNN_Delving_CVPR_2018_paper.html
 # Introduction 
 
 目标检测是一个复杂的问题，主要可以分为两部分。首先是识别问题（recognition）,然后是定位(localization)。两个问题都有一定的难度，因为detecor需要面对很多近似的false positives(其实就是IoU相对低，但是训练中被认为是正样本的样本)，也就是"close but not correct" bounding boxes。所以detector就需要找到ture positive，从这些close false positives中。

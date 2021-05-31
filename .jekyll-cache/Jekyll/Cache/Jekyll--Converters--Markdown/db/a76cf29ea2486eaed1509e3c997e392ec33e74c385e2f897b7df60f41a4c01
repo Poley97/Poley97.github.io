@@ -1,0 +1,122 @@
+I"�<blockquote>
+  <p>论文链接： https://arxiv.org/abs/1810.13125</p>
+  <h1 id="introduction">Introduction</h1>
+  <p>传统的non-local模块只关系了时间和空间上的关系，而没有关心channel之间的关系。而往往在视频中，不同目标之间的关系是体现在不同channel中的，比如脚和足球（见下图）。因此，在non-local中引入channel信息是非常关键的，这就是本文中提出的 compact generalized non-local (CGNL) module。</p>
+</blockquote>
+
+<p><img src="/assets/img/20210522/CGNLF1.png" alt="" /></p>
+
+<h1 id="related-work">Related work</h1>
+<p>略</p>
+
+<h1 id="approch">Approch</h1>
+<h2 id="review-of-non-local-operation">Review of Non-local Operation</h2>
+<p>Non-local operation 计算响应Y，通过所有位置的特征加权求和
+ \(\begin{equation}
+\mathbf{Y}=f(\theta(\mathbf{X}), \phi(\mathbf{X})) g(\mathbf{X})
+\end{equation}\)</p>
+
+<p>where $\theta(\cdot), \phi(\cdot), g(\cdot)$ are learnable transformations on the input. In [27], the authors suggest using $1 \times 1$ or $1 \times 1 \times 1$ convolution for simplicity, i.e., the transformations can be written as
+\(\begin{align}
+\theta(\mathbf{X})=\mathbf{X} \mathbf{W}_{\theta} \in \mathbb{R}^{N \times C}, \\
+\quad \phi(\mathbf{X})=\mathbf{X} \mathbf{W}_{\phi} \in \mathbb{R}^{N \times C}, \\
+\quad g(\mathbf{X})=\mathbf{X} \mathbf{W}_{g} \in \mathbb{R}^{N \times C}
+\end{align}\)</p>
+
+<p>这个f其实就是一个pairwise函数<br />
+\(\begin{equation}
+f(\cdot, \cdot): \mathbb{R}^{N \times C} \times \mathbb{R}^{N \times C} \rightarrow \mathbb{R}^{N \times N}
+\end{equation}\)来计算所有位置之间的亲和度（时间或者空间空间上），在f函数上具有很多种选择，比如最简单的点积</p>
+
+<p>\(\begin{equation}
+\mathbf{f}(\theta(\mathbf{X}), \phi(\mathbf{X}))=\theta(\mathbf{X}) \phi(\mathbf{X})^{\top}
+\end{equation}\)
+所以这实际上相当于一个三线性插值trilinear interpretation
+\(\begin{equation}
+\mathbf{Y}=\mathbf{X} \mathbf{W}_{\theta} \mathbf{W}_{\phi}^{\top} \mathbf{X}^{\top} \mathbf{X} \mathbf{W}_{g}
+\end{equation}\)
+所以non-local操作的效果可能和self-attention model有关，因为Y的本质是所有位置的线性加权。</p>
+
+<h2 id="review-of-bilinear-pooling">Review of Bilinear pooling</h2>
+
+<p>Bilinear pooling将点对之间的关系建立成外积(outer product)的形式，使用在final classification layer上。
+\(\begin{equation}
+\mathbf{Z}=\mathbf{X}^{\top} \mathbf{X} \in \mathbb{R}^{C \times C}
+\end{equation}\)
+之后最终的描述子通过下式求和获得</p>
+
+\[\begin{equation}
+z_{c_{1} c_{2}}=\sum_{n} x_{n c_{1}} x_{n c_{2}}
+\end{equation}\]
+
+<p>其和non-local的关系相当于</p>
+
+\[\begin{equation}
+\theta(\mathbf{X})=\mathbf{X}^{\top} \in \mathbb{R}^{C \times N}, \quad \phi(\mathbf{X})=\mathbf{X}^{\top} \in \mathbb{R}^{C \times N}
+\end{equation}\]
+
+<h2 id="generalized-non-local-operation">Generalized Non-local Operation</h2>
+
+<p>在上述的关系中，channel-wise的关系实际上是都被一起aggregation了。多个工作已经将channel-wise的关系利用起来。因此受这些工作启发，本文对Non-local做了generalize使得这种操作可以建模 long-range dependencies between any positions of any channels。</p>
+
+<p>方法如下，先将X reshape来将channel的信息融合到position里。</p>
+
+<p>We first reshape the output of the transformations (Eq. 2$)$ on $\mathrm{X}$ by merging channel into position:
+\(\begin{align}
+\theta(\mathbf{X})=\operatorname{vec}\left(\mathbf{X} \mathbf{W}_{\theta}\right) \in \mathbb{R}^{N C}, \\
+\phi(\mathbf{X})=\operatorname{vec}\left(\mathbf{X} \mathbf{W}_{\phi}\right) \in \mathbb{R}^{N C}, \\
+g(\mathbf{X})=\operatorname{vec}\left(\mathbf{X} \mathbf{W}_{g}\right) \in \mathbb{R}^{N C}
+\end{align}\)
+By lifting the row space of the underlying transformations, our generalized non-local (GNL) operation pursues the same goal of Eq. 1 that computes the response $\mathbf{Y} \in \mathbb{R}^{N \times C}$ as:
+\(\begin{equation}
+\operatorname{vec}(\mathbf{Y})=f\left(\operatorname{vec}\left(\mathbf{X} \mathbf{W}_{\theta}\right), \operatorname{vec}\left(\mathbf{X} \mathbf{W}_{\phi}\right)\right) \operatorname{vec}\left(\mathbf{X} \mathbf{W}_{g}\right)
+\end{equation}\)</p>
+
+<p>这样这变成了一个
+\(\begin{equation}
+f(\cdot, \cdot): \mathbb{R}^{N C} \times \mathbb{R}^{N C} \rightarrow \mathbb{R}^{N C \times N C}
+\end{equation}\)
+ 的映射，这样就可以区分任意位置和通道的信息。</p>
+
+<p>由于richer similarity 极大的提升了 non-local判别fine-grained object parts或者action snppets（动作片段）的能力。他可以被插入到网络的任何地方，而不只是最后一层。</p>
+
+<h2 id="compact-representation">Compact Representation</h2>
+
+<p>上述GNL的一个显著问题是，它随着channel number C的数量平方上涨。尽管可以通过分组减小开销，但是还是有很大的负担。因此，提出了他的compact GNL,来通过可接受的近似来近似GNL的功能。
+\(\begin{align*}
+\text { Let us denote } \\
+\boldsymbol{\theta}=\operatorname{vec}\left(\mathbf{X} \mathbf{W}_{\theta}\right), \\
+\boldsymbol{\phi}=\operatorname{vec}\left(\mathbf{X} \mathbf{W}_{\phi}\right)  \\
+\boldsymbol{g}=\operatorname{vec}\left(\mathbf{X} \mathbf{W}_{g}\right) \text { , }
+\end{align*}\)
+不失一般性，假设f是一个general kernel function。而</p>
+
+<p>是NC维度的向量。那么f可以用泰勒展开近似
+\(\begin{equation}
+[f(\boldsymbol{\theta}, \boldsymbol{\phi})]_{i j} \approx \sum_{p=0}^{P} \alpha_{p}^{2}\left(\theta_{i} \phi_{j}\right)^{p}
+\end{equation}\)</p>
+
+<p>以RBF（径向基函数）核为例，
+ \(\begin{equation}
+[f(\boldsymbol{\theta}, \boldsymbol{\phi})]_{i j}=\exp \left(-\gamma\left\|\theta_{i}-\phi_{j}\right\|^{2}\right) \approx \sum_{p=0}^{P} \beta \frac{(2 \gamma)^{p}}{p !}\left(\theta_{i} \phi_{j}\right)^{p}
+\end{equation}\)
+ where $\alpha_{p}^{2}=\beta \frac{(2 \gamma)^{p}}{p !}$ and $\beta=\exp \left(-\gamma\left(|\boldsymbol{\theta}|^{2}+|\phi|^{2}\right)\right)$ is a constant and $\beta=\exp (-2 \gamma)$ if the input
+vectors $\boldsymbol{\theta}$ and $\boldsymbol{\phi}$ are $\ell 2$ -normalized. By introducing two matrices,
+\(\begin{align*}
+\Theta=\left[\alpha_{0} \theta^{0},
+\cdots, \alpha_{P} \boldsymbol{\theta}^{P}\right] \in \mathbb{R}^{N C \times(P+1)}, \\
+\quad \boldsymbol{\Phi}=\left[\alpha_{0} \phi^{0}, \cdots, \alpha_{P} \boldsymbol{\phi}^{P}\right] \in \mathbb{R}^{N C \times(P+1)}
+\end{align*}\)
+our compact generalized non-local (CGNL) operation approximates Eq. 8 via a trilinear equation,
+\(\operatorname{vec}(\mathbf{Y}) \approx \Theta \Phi^{\top} g\)
+但是上述仍然包括large pairwise matrix 
+\(\begin{equation}
+\Theta \Phi^{\top} \in \mathbb{R}^{N C \times N C}
+\end{equation}\)
+但是幸运的是他们的泰勒展开阶数$P«NC$，因此可以先计算$\boldsymbol{z}=\boldsymbol{\Phi}^{\top} \boldsymbol{g} \in \mathbb{R}^{P+1}$ ，得到小的计算复杂度$\mathcal{O}(N C(P+1))$</p>
+
+<p>其模型如下</p>
+
+<p><img src="/assets/img/20210522/CGNLF2.png" alt="" /></p>
+
+:ET

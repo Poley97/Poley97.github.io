@@ -1,0 +1,38 @@
+I"/<blockquote>
+  <p>论文链接：http://openaccess.thecvf.com/content_cvpr_2018/html/Xie_Attentional_ShapeContextNet_for_CVPR_2018_paper.html
+参考博客： https://blog.csdn.net/qq_39732684/article/details/105542845</p>
+</blockquote>
+
+<h1 id="abstract">Abstract</h1>
+
+<p>受到self-attention 模型的启发，提出一种简单有效的contextual modeling mechanisam，使得contextual region selection , feature aggregation , and the feature teansformation process fully automatic。</p>
+<h1 id="introduction">Introduction</h1>
+
+<p>PointNet方法抓住了点云的不变形来有效的进行了学习，具有不错的效果。但是其问题在于每一个点云都是被单独对待的，最后使用pooling来做aggregation。PointNet++是它的后续拓展，使用了空间方法，比如FPS和grouping来利用global shape information。本文着重于开发以中deep learning的结构来做分类，利用了经典思想shape context，并引入深度学习中，成为ShapeContextNet。</p>
+
+<p><img src="/assets/img/20210524/APNSCK.png" alt="SCK" /></p>
+
+<h1 id="shape-context">Shape Context</h1>
+
+<p>先看一个2D情况下的Shape Context Kernel（暂且译为离散形态核，可能不是很贴切）。在2D目标点做一个近邻2D球（圆），然后这个圆可以按角度和半径切，分成图1所示的若干部分。沿着半径切了三刀，即$n_r = 3$沿着圆周角切了八刀，即$n_\theta=8$。于是这个近邻2D球被分成$n_r\times n_\theta=24$个区间（英文描述是bin）。Shape Context Kernel由这24个子区间组成。进而可以得到关于这个目标点的24维数倍的描述子。这是传统2D描述子的套路。作者认为可以拓展到深度学习中。</p>
+
+<p><img src="/assets/img/20210524/APNARCH.png" alt="ARCH" /></p>
+
+<h1 id="shapecontextnet">ShapeContextNet</h1>
+<p>类似于Shape context ,分为三步，<strong>Selection，Aggregation，Transformation</strong>，其中<strong>Selection</strong>是寻找近邻，并分配到对应的BIn中，转换到DL中，可以将两者合二为一，直接计算某点和另一点某bin之间的亲和度。<strong>Aggregation</strong>类似与Shape context，就是求和。<strong>Transformation</strong>则是转换为高维特征，传统方法可能是核函数，这里直接使用MLP即可。如上图所示。三者组合成一个模块即完成一次特征提取，这个过程可以重复多次。</p>
+
+<h1 id="attentional-shapecontextnet">Attentional ShapeContextNet</h1>
+<p>前面讨论了，A AA是一个$N\times N \times L$的张量。对于大型雷达点云，$N$是几万甚至几十万更多，那么张量$A$的存储是一个非常麻烦的事情，哪怕是使用稀疏张量存储。于是需要改进原有的SC层。作者做了些改进（感觉有点玄学，有效果就是好吧），如图2所示。这样一来，$A$是一个$N\times N$的张量。</p>
+
+<p>点积的self-attention在<em>Attention is all you need</em>中是一个处理长时间上下文信息的模型，通过light-weight gating mechanism实现。值得注意的是这同样是一个对输入顺序不变的模型。通过Attention的经典公式</p>
+
+\[\begin{equation}
+\text { Attention }(Q, V, K)=\operatorname{Softmax}\left(\frac{Q K^{T}}{\sqrt{D_{Q}}}\right) \cdot V
+\end{equation}\]
+
+<p>上式实际合并了<strong>Selection and Aggregation</strong>步骤，之后只需要再进行一步<strong>Transformation</strong>即可，即减小了计算成本，还使得效果更好。非常简单高效。</p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210524/APNEXP.png" alt="EXP" /></p>
+:ET
