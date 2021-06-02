@@ -1,0 +1,57 @@
+I"H<blockquote>
+  <p>论文链接： https://openaccess.thecvf.com/content_CVPR_2019/html/Zhang_PCAN_3D_Attention_Map_Learning_Using_Contextual_Information_for_Point_CVPR_2019_paper.html</p>
+</blockquote>
+
+<blockquote>
+  <p>参考博客： https://blog.csdn.net/qq_39732684/article/details/105542845</p>
+</blockquote>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>当Local features 做aggregating 生成global features，更合理的方法是reweight每个local feature ，在aggregation之前，这样可以使得global features得到更多task-relevant的信息。</p>
+
+<p>同样，context information 在判断 local point feature 的重要性上也很重要。</p>
+
+<p>本文提出PCAN ，使用local point features 产生一个attention map来预测每个点的权重，基于contextual information。由于3D点云不能直接卷积，因此受到PointNet++启发，使用不同半径的圆来aggregare multi-scale features。</p>
+
+<h1 id="related-work">Related work</h1>
+
+<h2 id="handcrafted-3d-descriptos">Handcrafted 3D Descriptos</h2>
+
+<p>比如PFH，FPFH,SHOT等等，已经包含在PCL库中。这些被设计用于提取局部特征，对噪声敏感，而且不适合提取全局特征，由于huge computation。</p>
+
+<h2 id="learned-3d-global-descriptors">Learned 3D Global Descriptors</h2>
+
+<p>PointNet,PointNet++等等，它们着重于提取3D数据的global level 特征，但是更多的用于处理完整的3D模型，而不是noisy and incomplete的 3D scanned data。</p>
+
+<h2 id="learned-3d-local-descriptors">Learned 3D Local Descriptors</h2>
+
+<p>3DMatch,Compact Geometric Features(CGF),PPFnet and PPF-FoldNet ,3Dfeat-Net等等。这些方法专注于提取局部特征，很难推广到global 特征，由于data increasing的问题。</p>
+
+<h1 id="network">Network</h1>
+
+<p><img src="/assets/img/20210525/PCANARCH.png" alt="ARCH" /></p>
+
+<h2 id="local-feature-extraction">Local feature extraction</h2>
+
+<p>使用PointNet。</p>
+
+<h2 id="attention-map">Attention map</h2>
+
+<p>为所有输入点计算一个Attention map。对于输入$N$个$D$维的点云特征，输出$s$的尺寸是$N \times C$,$C$可以是1维的分数，或者是$D$维的分数(one score for one channel)。得到reweight的local feature map如下
+\(\begin{equation}
+F_{w}=\left\{s_{1} \times f_{1}, \ldots, s_{N} \times f_{N}\right\}
+\end{equation}\)</p>
+
+<p>产生Attention的网络结构如下所示，也就是本文提出的PCAN。</p>
+
+<p><img src="/assets/img/20210525/PCANARCH2.png" alt="ARCH" /></p>
+
+<h3 id="contextual-attention-map">Contextual Attention Map</h3>
+
+<p>受到PointNet++启发，使用ball query search来aggregate multi-scale contextual information around a point。也就是使用了PointNet++中的sampling and grouping layer。再用FP layer 来得到最终的attention map。（这不就是MSG混用的PointNet++？？）最后得到了每个点的特征再转换为1维得到Attention MAP。</p>
+
+<p>#个人总结</p>
+
+<p>思路比较简洁明了，大概就是PointNet提取逐点特征，使用PointNet++结合邻域特征产生Attention，再对PointNet产生的特征进行加权，最后产生全局特征。</p>
+:ET

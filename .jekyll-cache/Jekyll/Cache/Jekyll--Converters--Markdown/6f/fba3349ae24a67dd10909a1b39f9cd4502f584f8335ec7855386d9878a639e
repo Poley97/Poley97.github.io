@@ -1,0 +1,8 @@
+I"x<blockquote>
+  <p>用来记录一些临时的想法</p>
+</blockquote>
+
+<ol>
+  <li><strong>STD和PVRCNN其实是相反的思路</strong>。STD是sparse to dense，使用point-wise的特征来生成proposal，再将proposal内的，点做voxelization，再用cnn处理。而PVRCNN是先voxelization，得到proposal后再结合点特征进行refine。完全相反。</li>
+</ol>
+:ET

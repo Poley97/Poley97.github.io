@@ -1,0 +1,13 @@
+I"`<blockquote>
+  <p>代码参考 https://github.com/FishYuLi/BalancedGroupSoftmax</p>
+</blockquote>
+
+<h1 id="模型结构实现">模型结构实现</h1>
+
+<p>代码框架，基于mmdet。</p>
+
+<h1 id="核心内容">核心内容</h1>
+
+<p>自定义了一个roi_head模块 <strong>GSBboxHeadWith0</strong>，源码中的gs即代表groupsoftmax结构。</p>
+
+:ET

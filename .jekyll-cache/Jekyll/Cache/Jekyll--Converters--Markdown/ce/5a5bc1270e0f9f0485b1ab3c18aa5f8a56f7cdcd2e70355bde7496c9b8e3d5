@@ -1,0 +1,5 @@
+I"<h1 id="mmdet-faster-rcnn-fpn源码流程阅读">mmdet faster-rcnn-fpn源码流程阅读</h1>
+<ol>
+  <li>由于debug时，train.py文件不在根目录下，因此需要手动修改一下run/debug configuration 中的working directory。要不跑步起来。</li>
+</ol>
+:ET

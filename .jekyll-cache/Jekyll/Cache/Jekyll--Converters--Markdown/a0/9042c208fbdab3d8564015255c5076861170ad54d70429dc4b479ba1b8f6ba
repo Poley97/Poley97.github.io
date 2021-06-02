@@ -1,0 +1,49 @@
+I"�
+<blockquote>
+  <p>论文链接 https://openaccess.thecvf.com/content_cvpr_2018/html/Zhang_Single-Shot_Refinement_Neural_CVPR_2018_paper.html</p>
+</blockquote>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>单阶段目标速度快，效率高，但是检测精度通常低于两阶段的。一个主要的原因来自于class imbalance problem</p>
+
+<p>两阶段的结构相比单阶段的主要三个优点：</p>
+
+<ol>
+  <li>通过采样降低了class imbalance</li>
+  <li>使用two-step cascade 回归box ，即两次回归</li>
+  <li>使用two-stage feature 来描述物体，即两阶段特征。</li>
+</ol>
+
+<p>本文提出两个module</p>
+<ol>
+  <li>anchor refinement module(ARM):
+    <ul>
+      <li>识别并移除负样本，减小classifier的搜索空间</li>
+      <li>Coarsely 调整 anchor的loc和sizes，提供更好的初值给subsequent regressor</li>
+    </ul>
+  </li>
+  <li>object detection module(ODM)
+    <ul>
+      <li>使用refined anchor as input 来进一步提升回归质量和预测multi class label</li>
+    </ul>
+  </li>
+</ol>
+
+<p>ARM其实就是一个bottom-up主干网络，使用VGG16或者RESNET101，为了丰富特征，在VGG16后面加了两个卷积层conv6_1，conv6_2，或者再RESNET101后面加一个RES模块。参数初始化使用xavier初始化。</p>
+
+<p>ODM是一个top-down网络这个结构基本类似FPN，只是因为当时FPN没有开源，所以作者类比FPN自己写了一个结构。</p>
+
+<p>Transfer Connection Block（TCBS）用于连接两者，就是一个3*3卷积。用于转换特征。使得ARM可以和ODM共享特征。但是值得注意的是，作者只是用TCBS在和anchors有关的feature maps上。即第一次预测anchor的层。之后和top-down的层相加，这和fpn一样。</p>
+
+<p>具体来说，ARM首先按常规划分计算每个cell上n个anchor的objectiveness和xywh参数。经过置信度筛选之后（去除置信度很高的负样本，比如背景置信度&gt;0.99），再经过loss筛选（选择loss大的负样本），使得正负样本1：3，再进一步送入ODM中进行进一步处理。</p>
+
+<p>ODM接受ARM传来的refined anchors作为输入，ODM再输出c+4个output，对应每个class，以及4个相对于refined anchors的偏移，完成预测。</p>
+
+<p><img src="/assets/img/20210522/RefineDetArch.png" alt="" /></p>
+
+<p><img src="/assets/img/20210522/RefineDetBlock.png" alt="" /></p>
+
+<p>总体来说，本文的思想在于分析了为什么two-stage的性能强于one-stage，但速度快于two-stage。通过分析，作者巧妙的将两者结合起来，避免使用RoIpooling来拖慢速度，同时也用到目标框的二次回归以及特征的二次提取，达到的不错的效果。这个分析问题的思路是值得学习的。</p>
+
+:ET

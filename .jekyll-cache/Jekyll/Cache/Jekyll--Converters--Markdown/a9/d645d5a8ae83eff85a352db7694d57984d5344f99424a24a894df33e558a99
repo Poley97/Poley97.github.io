@@ -1,0 +1,33 @@
+I"6<blockquote>
+  <p>论文链接 ： http://export.arxiv.org/pdf/2003.04297</p>
+</blockquote>
+
+<p>这是一篇很短的论文，只有3页。主要内容是加了一些trick，将来自<strong>SimCLR</strong>的有效的部分结合到<strong>Moco</strong>里，有效的提升了性能。</p>
+
+<p><strong>SimCLR</strong>中，从三个层面提升了instance discrimination的端到端变体。</p>
+<ol>
+  <li>更大的batch(4k or 8k)可以提供更多的负样本</li>
+  <li>替换输出的fc projection head with an MLP head</li>
+  <li>更强的数据增强</li>
+</ol>
+
+<p>在Moco的架构中，负样本的数量已经可以很多。<strong>MLP head和数据增强与对比学习的实例化方式是正交的</strong>。</p>
+
+<h2 id="mlp-head">MLP head</h2>
+<p>将MOCO中的fc 换成了MLP，性能有显著的提升，在不同温度下都是。</p>
+
+<p><img src="/assets/img/20210601/MOCOv2T1.png" alt="" /></p>
+
+<h2 id="augmentation">Augmentation</h2>
+
+<p>在原有的数据增强基础上加入了 blur augmentation（作者发现stronger color distortion在本文中增益不明显）</p>
+
+<p>对MoCo baseline的消融实验如下
+<img src="/assets/img/20210601/MOCOv2T0.png" alt="" /></p>
+
+<p>其中可以看到单独用aug+的效果比用MLP的还好，在detection上，而在ImageNet分类上差一些。这说明线性分类准确率并不是单调的和transfer performance in detection相关的。</p>
+
+<h2 id="总结">总结</h2>
+
+<p>总体来说，通过以上的改进，Mocov2相比SimCLR具有更好的性能。对于硬件和计算能力的需求也大大降低。</p>
+:ET

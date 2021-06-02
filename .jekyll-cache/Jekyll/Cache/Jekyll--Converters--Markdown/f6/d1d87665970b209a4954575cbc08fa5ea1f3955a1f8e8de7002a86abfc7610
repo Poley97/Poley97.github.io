@@ -1,0 +1,57 @@
+I"<blockquote>
+  <p>论文链接 https://arxiv.org/abs/2008.10032</p>
+
+  <p>参考博客 https://zhuanlan.zhihu.com/p/339126633</p>
+</blockquote>
+
+<p>#Contuibutions</p>
+
+<ol>
+  <li>
+    <p>为了准确的目标定位：提出dense local regression，使得candidate proposal 的每个 sub-region 都预测一个相对的box offsets towards gt bbox的四个边。</p>
+  </li>
+  <li>
+    <p>为了进一步的提升dese local regression,引入了一个binary overlap prediction 来区别每个sub-region of a candidate proposal是在object region还是background region。</p>
+  </li>
+  <li>
+    <p>为了准确的对target object进行分类，引入了discriminative RoI pooling 来先从多个sub-regions里采样来后来执行自适应权重，来产生disriminateve feature。</p>
+  </li>
+</ol>
+
+<p><img src="/assets/img/20210521/D2DetNetwork.png" alt="D2Det网络结构" /></p>
+
+<h1 id="dense-local-regression">Dense Local Regression</h1>
+
+<p>标准的Faster rcnn将整个ROI看做一个signle vector，也就是将其视为一个global feature representation，然后预测一个总体的偏移。而本文提出的方法则是将一个k*k的roi feature看做k^2个 spatially adjacent local features。如上图(b)所示。</p>
+
+<p>但是无论proposal 和 groundtruth 重合度多高，proposal里都总会包含这一部分背景特征（也就是不在gt里的cell），这些特征预测出来的offset肯定会对结果造成影响。因此，为了去掉这些背景特征造成的影响，加入了一个binary overlap prediction，通过引入一个additional output $\hat{m}$。$\hat{m}$的真值通过其是否在groundtruth中判断，如下 
+\(\begin{equation}
+m_{i}=\left\{\begin{array}{ll}
+1, &amp; \text { if } p_{i} \in G ; \quad \forall p_{i} \in P \\
+0, &amp; \text { otherwise }
+\end{array}\right.
+\end{equation}\)</p>
+
+<p>由于不能得到gt的pixel-level instance mask在一般的object detection中，所以就简单假设所有gt bbox里的都是object。$\hat{m}$的损失预测用二值交叉熵。在预测的时候，指考虑置信度大于0.5的位置预测出的offset。</p>
+
+<p>和Grid-RCNN相比我们的稠密局部回归可以更准确地定位一个对象，因为它能够回归任何实数偏移，并且它不局限于一个固定的兴趣区域内的一组量化的关键点。
+多个不同的回归预测方法，如下图所示。
+<img src="/assets/img/20210521/D2DetRegression.png" alt="D2Det网络结构" /></p>
+
+<h1 id="discriminative-roi-pooling">Discriminative RoI Pooling</h1>
+
+<p>和回归不同，classification需要高度判别性的信息。 Discriminative RoI Pooling受到 deformable RoI Pooling启发而来。</p>
+
+<p>首先，相比标准的deformable roi pooling，本文先试用一个轻量化的网络来预测offset信息，具体就是把offset预测的输入feature map尺度减小1/2，这样参数量就变为原来的1/4。和deformable卷积一样施加偏移之后做RoiAlign。</p>
+
+<p>对于RoiAlign的每个采样点（比如2k*2k个，即每个cell内四个），都预测一个discriminative ablitiy，来对特征进行加权。
+\(\begin{equation}
+\tilde{F}=W(F) \odot F
+\end{equation}\)</p>
+
+<p>之后再做average pooling，得到最终的特征。在分类预测上，最终得到的这个roi feature就被视为一个global vector，通过fc得到预测结果。由于这个offset的预测采样了在proposal和sourroundings的sub-regions，因此更容易得到更有判别性的信息。</p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210521/D2DetExperiments.png" alt="D2Det实验结果" /></p>
+:ET

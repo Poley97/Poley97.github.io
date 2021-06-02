@@ -1,0 +1,15 @@
+I"�<p>mathjax in markdown :)</p>
+
+<p><strong>这是一个不<code class="language-plaintext highlighter-rouge">align</code>的公式</strong>：</p>
+
+<p>$\forall \alpha \in A, \quad a \cdot b = 0$</p>
+
+<p><strong>这是一个<code class="language-plaintext highlighter-rouge">align</code>的公式</strong>：</p>
+
+\[\begin{align*}
+&amp;k\oplus m = c \\
+&amp;k = m\oplus c\\
+\end{align*}\]
+
+<p><strong>注意：</strong>公式块要想有较好的显示效果，必须在公式块标记符<code class="language-plaintext highlighter-rouge">$$</code><strong>前后</strong>留有空行，否则公式将不能正常居中。行内公式无此问题。</p>
+:ET
