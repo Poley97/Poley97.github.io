@@ -7,7 +7,7 @@ cover: '/assets/img/20210601/UFLNPID.png'
 tags: 论文阅读
 ---
 > 论文链接： https://openaccess.thecvf.com/content_cvpr_2018/papers/Wu_Unsupervised_Feature_Learning_CVPR_2018_paper.pdf
-> 参考博客 ： 
+> 参考博客 ： https://blog.csdn.net/qq_16936725/article/details/51147767
 
 # Introduction
 
@@ -57,7 +57,7 @@ $$
 
 **其中$\tau$是温度参数，控制了分布的concentration(集中度?)**，它对于监督学习很重要，在这里，同样对**tuning the concentration of v on our unit sphere**很必要。
 
-学习目标就是最小化负对数似然
+学习目标是最大化联合概率密度，也就是最小化负对数似然
 $$
 \begin{equation}
 J(\boldsymbol{\theta})=-\sum_{i=1}^{n} \log P\left(i \mid f_{\boldsymbol{\theta}}\left(x_{i}\right)\right)
@@ -66,11 +66,11 @@ $$
 
 ### Learning with A Memory Bank
 
-为了计算上述的条件概率，需要${v_i}$ for all the images。为了避免每次都计算产生的巨大计算量，所以需要维护一个feature memory bank V 来存储。字典V里的所有表达用随机的向量来初始化。当一个新的特征进入了字典即完成了更新。
+为了计算上述的条件概率，需要${v_i}$ for all the images。为了避免每次都计算产生的巨大计算量，所以需要维护一个feature memory bank V 来存储所有图片的特征。字典V里的所有表达用随机的向量来初始化。当一个新的特征进入了字典即完成了更新。
 
 ## Noise-Contrastive Estimation
 
-使用NCE来模拟full=softmax。但是避免计算全部instance的相似度，将这个问题转换为一个二分类问题。
+使用NCE来模拟full=softmax。但是避免计算全部instance的相似度，将这个问题转换为一个二分类问题。其基本思想是将多分类任务转化为一系列二分类任务，二分类任务是判断样本是来自与真实数据还是噪声数据。特别的，我们将概率改写为
 $$
 \begin{equation}
 P(i \mid \mathbf{v})=\frac{\exp \left(\mathbf{v}^{T} \mathbf{f}_{i} / \tau\right)}{Z_{i}} 
