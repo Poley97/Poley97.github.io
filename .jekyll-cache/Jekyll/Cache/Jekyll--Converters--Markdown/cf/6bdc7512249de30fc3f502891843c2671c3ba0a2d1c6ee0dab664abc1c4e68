@@ -1,0 +1,6 @@
+I"$<blockquote>
+  <p>论文链接 ： http://export.arxiv.org/pdf/2003.04297</p>
+</blockquote>
+
+<p>这是一篇很短的论文，只有3页。主要内容是加了一些trick，将来自<strong>SimCLR</strong>的有效的部分结合到<strong>Moco</strong>里，有效的提升了性能。</p>
+:ET
