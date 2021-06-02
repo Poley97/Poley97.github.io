@@ -1,0 +1,6 @@
+I"�<blockquote>
+  <p>论文链接 ：https://arxiv.org/abs/1912.12791</p>
+</blockquote>
+
+<p>坐着发现除了将点云规则化，直接利用一个独立目标部分的点依旧对可以提供很多的关于目标语义的信息。因此提出了<strong>Object as Hotspots(OHS)</strong>，并且提出了一种新的anchor-free的方法以及一种新的assignment方法，来解决物体间点稀疏度不平衡的问题，防止网络向拥有更多点的object偏移。</p>
+:ET
