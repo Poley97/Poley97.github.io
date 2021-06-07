@@ -95,3 +95,15 @@ $$
 ### Dilated Residula Block
 
 通过连续的Local Spateial Encoding 和 Attentive Pooling，以及skip connection组成一个block。数据随着不断的降采样和融合特征，使得剩余的点感受野越来越大，如下所示。
+
+![](/assets/img/20210603/RandLANetF4.png)
+
+# Experiments
+首先，在速度和处理大规模点云的能力上，远超现有方法，如下所示。
+![](/assets/img/20210603/RandLANetT1.png)
+
+在性能指标上，同样超过现有方法，效果很好。
+
+![](/assets/img/20210603/RandLANetT3.png)
+
+![](/assets/img/20210603/RandLANetF6.png)

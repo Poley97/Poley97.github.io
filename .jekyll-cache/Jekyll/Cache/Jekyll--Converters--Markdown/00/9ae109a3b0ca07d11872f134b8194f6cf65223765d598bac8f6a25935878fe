@@ -1,4 +1,4 @@
-I"0<blockquote>
+I"<blockquote>
   <p>论文链接：http://openaccess.thecvf.com/content_CVPR_2020/papers/Hu_RandLA-Net_Efficient_Semantic_Segmentation_of_Large-Scale_Point_Clouds_CVPR_2020_paper.pdf</p>
 </blockquote>
 
@@ -98,4 +98,16 @@ PointNet提出了直接处理3D点云的方法，直接通过MLPs。这样的计
 <h3 id="dilated-residula-block">Dilated Residula Block</h3>
 
 <p>通过连续的Local Spateial Encoding 和 Attentive Pooling，以及skip connection组成一个block。数据随着不断的降采样和融合特征，使得剩余的点感受野越来越大，如下所示。</p>
+
+<p><img src="/assets/img/20210603/RandLANetF4.png" alt="" /></p>
+
+<h1 id="experiments">Experiments</h1>
+<p>首先，在速度和处理大规模点云的能力上，远超现有方法，如下所示。
+<img src="/assets/img/20210603/RandLANetT1.png" alt="" /></p>
+
+<p>在性能指标上，同样超过现有方法，效果很好。</p>
+
+<p><img src="/assets/img/20210603/RandLANetT3.png" alt="" /></p>
+
+<p><img src="/assets/img/20210603/RandLANetF6.png" alt="" /></p>
 :ET

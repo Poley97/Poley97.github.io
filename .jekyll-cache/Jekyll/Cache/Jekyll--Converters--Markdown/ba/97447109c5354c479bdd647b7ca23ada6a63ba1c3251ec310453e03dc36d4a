@@ -1,0 +1,29 @@
+I"	<blockquote>
+  <p>论文链接 ： https://arxiv.org/pdf/2003.07021v1.pdf</p>
+</blockquote>
+
+<h1 id="introduction">Introduction</h1>
+
+<p><img src="/assets/img/20210607/EFPF1.png" alt="" /></p>
+
+<p>尽管FPN提升了multi-scale detection的表现，但是这种启发式的mapping机制可能会混淆小目标检测，如上图所示，小目标和中目标可能被迫共享一个feature map，而大目标则可以选择自己最适合的level。这在AP上也可以反映出来，小目标的AP在这种情况下远低于大目标的。</p>
+
+<p>一种自然的想法就是提高feature的分辨率，比如一些超分辨率方法。一种方法是直接对输入图像做超分辨率，但是这样计算成本很高；另一种方法是FPN底层特征做超分辨率，但是这样SR方法经常会想象出一些不存在的特征，也就是倾向于虚构一些假的特征，最终导致false positives。</p>
+
+<p>本文提出<strong>extended feature pyramid network(EFPN)</strong>，使用一种大尺度的SR特征with充分的细节来将small 和 medium 目标检测解耦。同时这个高分辨率feature map依赖于CNN产生的原始真是特征，而不是其他方法中的凭空想象。</p>
+
+<h1 id="our-approach">Our Approach</h1>
+
+<p>在原有FPN的基础上，通过SR得到一个更高分辨率并且可靠的特征。</p>
+
+<p><img src="/assets/img/20210607/EFPF2.png" alt="" /></p>
+
+<p>如下所示，$P_2$和$P_3$特征结合，产生$P_3’$，在经过$C_2’$的融合，得到$P_2’$也就是可靠的高分辨率特征。其中，$C_2’$和$C_2$的区别如下所示</p>
+
+<p><img src="/assets/img/20210607/EFPT1.png" alt="" /></p>
+
+<p>$P_2’$通过求和产生
+\(\begin{equation}
+P_{2}^{\prime}=P_{3}^{\prime} \uparrow_{2 \times}+C_{2}^{\prime}
+\end{equation}\)</p>
+:ET

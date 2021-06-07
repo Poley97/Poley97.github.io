@@ -1,0 +1,31 @@
+I"�<blockquote>
+  <p>论文链接 ： https://www.sciencedirect.com/science/article/pii/S0925231219309117</p>
+</blockquote>
+
+<h1 id="主要内容">主要内容</h1>
+
+<ol>
+  <li>Cascade RPN : 注，这和那个Cascade RPN不一样。如下所示</li>
+</ol>
+
+<p><img src="/assets/img/20210607/CRPGCF2.png" alt="" /></p>
+
+<p>这里RPN2对RPN1所有的输出（稠密预测）进行refine。但是实际预测中，只用RPN2的输出实际上对于小目标的性能下降了，但是对于中大目标的性能提升了。因此这里用了一个trick,用了一个面积阈值来判断目标的大小，选择从哪里输出。</p>
+
+<ol>
+  <li>
+    <p>Augmenting classification with pretrained global context
+考虑到全局信息可能对分类有帮助而对回归没有明显帮助，这里单独提取的全局的ROI，并只用于分类。如下所示。
+<img src="/assets/img/20210607/CRPGCF3.png" alt="" /></p>
+  </li>
+  <li>
+    <p>还加了一些tricks，比如预训练、正负样本比例等等……</p>
+  </li>
+</ol>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210607/CRPGCT1.png" alt="" /></p>
+
+<p><img src="/assets/img/20210607/CRPGCT2.png" alt="" /></p>
+:ET

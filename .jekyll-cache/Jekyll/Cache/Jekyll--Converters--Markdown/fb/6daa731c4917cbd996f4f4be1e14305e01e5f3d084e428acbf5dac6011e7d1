@@ -1,0 +1,68 @@
+I"E<blockquote>
+  <p>论文链接 ：https://openaccess.thecvf.com/content_CVPR_2020/papers/Guo_AugFPN_Improving_Multi-Scale_Feature_Learning_for_Object_Detection_CVPR_2020_paper.pdf</p>
+</blockquote>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>FPN可以分为一下三个阶段：</p>
+
+<ol>
+  <li>Before feature fusion</li>
+  <li>top-down feature fusion</li>
+  <li>after feature fusion</li>
+</ol>
+
+<p>每个阶段都存在一些内生的缺陷，如下：</p>
+
+<ol>
+  <li><strong>Semantic gaps between features at different levels :</strong> 在特征融合之前，特征都经过一个单独的$1 \times 1$卷积来减少channels，但是这些特征之间的semantic gaps没有被考虑。</li>
+  <li><strong>Information loss of the highest-level feature map :</strong> top-down结构中最高层的feature反而会由于channels的减少而丢失信息。</li>
+  <li><strong>Heuristical assignment strategy of RoIs :</strong> 普通提取RoI的时候，根据Anchor的大小从特定的层中提取，但其它层可能也会包含有用的信息。PANet从所有层中提取信息，然后经过max得到特征，但是max同样会造成信息损失，而如果不做max，又会导致维度太高，全连接层参数过多。</li>
+</ol>
+
+<p>综上，本文提出<strong>AugFPN</strong>,包含三部分：</p>
+<ol>
+  <li><strong>Consistent Supervision</strong></li>
+  <li><strong>Ratio-invariant adaptive pooling</strong></li>
+  <li><strong>Soft RoI Selection</strong></li>
+</ol>
+
+<p><img src="/assets/img/20210607/AUGFPNF1.png" alt="" /></p>
+
+<p><img src="/assets/img/20210607/AUGFPNF2.png" alt="" /></p>
+
+<h1 id="methodology">Methodology</h1>
+
+<h2 id="consistent-supervision">Consistent Supervision</h2>
+
+<p>FPN在Top-down结构中直接使用<strong>上采样+求和</strong>来融合特征，<strong>但是不同scale的特征包含了不同抽象等级（abstract levels）的特征</strong>，直接融合他们存在很大的<strong>semantic gaps</strong>，导致结果可能不是最优的特征金字塔。</p>
+
+<p>因此提出Consistent Supervision，具体方法就是在top-down 结构上加一个RPN，对于所有的ROI做一个<strong>auxiliary loss</strong>，在不同levels的feature map上提取相同的RoI,然后通过一个回归头和分类头来得到他们各自的回归和分类结果作为损失，这就要求每一个level在包含的信息上具有一定的一致性。同时，每层使用的FC是<strong>shared</strong>的，这可以进一步强制不同层的feature map学习到类似的语义信息。</p>
+
+<p>Loss就又auxiliary和正常的loss得到。</p>
+
+\[\begin{equation}
+\begin{aligned}
+L_{r c n n} &amp;=\lambda \sum_{M=2}^{5}\left(L_{c l s, M}\left(p_{M}, t^{*}\right)+\beta\left[t^{*}&gt;0\right] L_{l o c, M}\left(d_{M}, b^{*}\right)\right) \\
+&amp;+\sum_{P=2}^{5}\left(L_{c l s, P}\left(p, t^{*}\right)+\beta\left[t^{*}&gt;0\right] L_{l o c, P}\left(d, b^{*}\right)\right)
+\end{aligned}
+\end{equation}\]
+
+<p>## Residual Feature Augmentation</p>
+
+<p>FPN中的另一个问题是顶层信息损失。Los-levels的特征都通过和高层信息的融合得到了语义的增强，并且自然的被赋予了上下文信息。<strong>但是$M_5$层却收到了信息损失的影响，因为减少了channels，同时没有和任何别的scale的信息融合</strong>。</p>
+
+<p>因此，使用<strong>ratio-invariant adaptive pooling</strong>,以M5作为输入，将原始特征pooling成原feature尺寸成一定比率大小的3个子特征图，比率不变自适应池化考虑了图像的比例，比PSPNet更适合于目标检测；之后再将多个尺寸的feature map得到插值到同意大小进行特征融合。由于插值可能造成的混淆，提出了一个<strong>Adaptive Spatial Fusion(ASF)</strong>,来自适应的结合不同层中的context信息，而不是简单的求和。其结构如下所示，我个人理解其就是一个<strong>注意力机制</strong>。融合多个尺寸的feature map的信息，得到$M_6$特征，连接到$M_5$，以增强$M_5$的数据表达信息。</p>
+
+<p><img src="/assets/img/20210607/AUGFPNF3.png" alt="" /></p>
+
+<h2 id="soft-roi-selection">Soft RoI Selection</h2>
+
+<p>和上面一样，用ASF来融合信息，取代了传统RoI只在一个feature map取特征的问题，也不像PANet那样同时取所有的再使用全连接。而是通过ASF注意力机制自适应的选择不同层的特征，并通过两个卷积层来审查各行特征，这相比PANet大大减小了参数数量。</p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210607/AUGFPNT1.png" alt="" /></p>
+
+<p><img src="/assets/img/20210607/AUGFPNF4.png" alt="" /></p>
+:ET
