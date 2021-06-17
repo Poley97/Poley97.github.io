@@ -1,0 +1,85 @@
+I"�<blockquote>
+  <p>论文链接： https://openaccess.thecvf.com/content_ICCV_2019/papers/Tian_FCOS_Fully_Convolutional_One-Stage_Object_Detection_ICCV_2019_paper.pdf</p>
+</blockquote>
+
+<p>特点： <strong>Anchor box free, proposal free, Avoid all hyper-parameters related to anchor boxes, simple</strong>。</p>
+<h1 id="introduction">Introduction</h1>
+
+<p>目前主流的方法（2019年）都通过预设anchor-boxes来达到好的性能，并且 <em>it has long been
+believed that the use of anchor boxes is the key to detectors success</em>.</p>
+
+<p>但是anchor-based detector具有如下的缺点</p>
+
+<ul>
+  <li><strong>Detection performance is sensitive to the sizes, aspect ratios and number of anchor boxes</strong>： 比如RetinaNet通过调整anchor超参数可以在coco上提升4%的AP。</li>
+  <li><strong>Because the scales and aspect ratios of anchor boxes are kept fixed, detectors encounter difficulties to deal with object candidates with large shape variations, particularly for small objects</strong> ：预定义的anchor阻碍了detector的泛化能力。</li>
+  <li><strong>In order to achieve a high recall rate, an anchor-based detector is required to densely place anchor boxes on the input image</strong>： 大量的anchor中绝大部分都是负样本，造成了类别不平衡。</li>
+  <li><strong>Anchor boxes also involve complicated computation such as calculating the intersection-over-union (IoU) scores with ground-truth bounding boxes</strong>：大量的IOU计算花费很多时间。</li>
+</ul>
+
+<p>受到FCN在语义分割任务上的启发，自然的引发一个问题：<em>Can we solve object detection in the neat per-pixel prediction fashion, analogue to FCN for semantic segmentation, for example?</em></p>
+
+<p>有一些方法通过FCN-based 架构来进行目标检测，比如Dense-Box。这些方法都通过预测一个4D vector加一个类别，在每个空间位置上，如下图所示。</p>
+
+<p><img src="/assets/img/20210616/FCOSF1.png" alt="" /></p>
+
+<p>但现有的方法基本都用在特殊领域的目标识别，而不是通用目标识别。因为通用目标识别有较多的<strong>highly overlapped bounding boxes</strong>，一个像素的归属在这种情况下变得更为复杂。</p>
+
+<p>但是作者发现FPN可以解决这个问题，但是又会产生很多低质量的框。因此坐着提出一个<strong>center-ness branch</strong>有效的抑制了这种情况的发生。</p>
+
+<p>FCOS优势如下：</p>
+<ul>
+  <li>将目标检测和其他FCN可以解决的问题，比如目标分割联系起来。使得这些任务上的ideas可以重复利用到目标检测上</li>
+  <li>FCOS使得检测框架更加简单，少了很超参数的设定</li>
+  <li>由于没有Anchor，显著减少了计算IOU的时间</li>
+  <li>达到了单阶段检测器的SOAT</li>
+  <li>可以很容易的迁移到别的任务上</li>
+</ul>
+
+<p><img src="/assets/img/20210616/FCOSF2.png" alt="" /></p>
+
+<h1 id="our-approach">Our Approach</h1>
+
+<h2 id="fully-convolutional-one-stage-object-detector">Fully Convolutional One-Stage Object Detector</h2>
+
+<p>与anchor based方法不同的是，anchor based方法回归anchor box和 target box之间的不同，而本文中则直接在当前位置回归target bounding box。也就是说，本方法直接将<strong>location看做training samles</strong>。</p>
+
+<p>当一个位置落在任何一个ground-truth box重，则认为他是正样本并给予对应的标签。如果一个位置同时落在多个bounding box里，则将其视为一个<strong>ambiguous sample</strong>，简单选取其对应的最小面积的Bounding box作为回归目标，在multi-level prediction中，amibiguous sample的数量可以大大减少并且很难影响到检测的性能。回归目标如下所示，即到四条边的距离</p>
+
+\[\begin{equation}
+\begin{aligned}
+l^{*} &amp;=x-x_{0}^{(i)}, \quad t^{*}=y-y_{0}^{(i)} \\
+r^{*} &amp;=x_{1}^{(i)}-x, \quad b^{*}=y_{1}^{(i)}-y
+\end{aligned}
+\end{equation}\]
+
+<p><strong>It is worth noting that FCOS can leverage as many foreground samples as possible to train the regressor.</strong></p>
+
+<p>最终每个点输出一个4D vectors，加上一个C个二分类结果。由于回归结果总是正的，因此用指数函数来将$[-\infty,\infty]$映射到$[0,\infty]$。</p>
+
+<h2 id="multi-level-prediction-with-fpn-for-fcos">Multi-level Prediction with FPN for FCOS</h2>
+
+<p>简要的说，multi-level prediction可以提高FCOS的 <strong>best possible recall(BPR)</strong>,同时也可以显著的解决<strong>ambiguity</strong>的问题。</p>
+
+<p>和anchor-based方法直接通过anchor大小来划分到不同的level上不同，这里通过限制回归的值来分层。比如</p>
+
+\[\begin{equation}
+\max \left(l^{*}, t^{*}, r^{*}, b^{*}\right)&gt;m_{i},\max \left(l^{*}, t^{*}, r^{*}, b^{*}\right)&lt;m_{i-1}
+\end{equation}\]
+
+<h2 id="center-ness-for-fcos">Center-ness for FCOS</h2>
+
+<p>用一层神经网络来预测centerness，其定义如下</p>
+
+\[\text { centerness }^{*}=\sqrt{\frac{\min \left(l^{*}, r^{*}\right)}{\max \left(l^{*}, r^{*}\right)} \times \frac{\min \left(t^{*}, b^{*}\right)}{\max \left(t^{*}, b^{*}\right)}}\]
+
+<p><img src="/assets/img/20210616/FCOSF3.png" alt="" /></p>
+
+<p>将其作为得分的权重用在NMS里，显著提升了性能。</p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210616/FCOST1T2.png" alt="" />
+<img src="/assets/img/20210616/FCOST3.png" alt="" />
+<img src="/assets/img/20210616/FCOST4.png" alt="" /></p>
+:ET

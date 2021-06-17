@@ -1,0 +1,68 @@
+I"`<blockquote>
+  <p>论文链接 : http://openaccess.thecvf.com/content_ICCVW_2019/papers/ADW/Wang_Range_Adaptation_for_3D_Object_Detection_in_LiDAR_ICCVW_2019_paper.pdf</p>
+</blockquote>
+
+<h1 id="introduction">Introduction</h1>
+<p>激光雷达的数据特点决定了其数据点随着距离的增加而明显的degrades，导致在远处物体处交叉的性能。本文提出一种cross-range adaptation，来使得远处的物体得到和近处物体类似的性能。</p>
+
+<p>本文实际将其视为一种<strong>cross-domain的迁移学习任务</strong>。将<strong>近距离区域视为sourece domain,远距离区域视为target domain</strong>。</p>
+
+<p>本文的adapation包括local和global两部分，</p>
+
+<ol>
+  <li>
+    <p><strong>Global adaptation</strong>： 使用对抗学习来<strong>align the feature in the network feature space</strong>。但是从图像的经验来说，adaptation的结果高度依赖于task有多复杂，比如对于图像（分类？）的结果就很好，但是对图像分割效果就很差。因此，这让我们需要探究对抗学习背后的原理，以及利用起点云的特性。</p>
+  </li>
+  <li>
+    <p><strong>Local adaptation</strong>: 由于点云目标的尺度并不随物体的距离而发生变化，所以利用这种特性，来挖掘点云空间中，source 和 target ranges中的matched local regions。</p>
+  </li>
+</ol>
+
+<p><img src="/assets/img/20210611/RAF1.png" alt="" /></p>
+
+<h1 id="related-work">Related Work</h1>
+
+<h2 id="3d-object-detection">3D Object Detection</h2>
+<p>略</p>
+
+<h2 id="domain-adaptation">Domain Adaptation</h2>
+<p>主要有两个方向，一个是在一个单独的网络中做domain adaptation，两个域共享所有的参数，同时促使网络去产生domain-invariant features，通过最小化一个额外损失，其用于<strong>鼓励两个域中的近似特征</strong>。</p>
+
+<p>另一个是<strong>对抗学习</strong>，使用一个判别器来判别features的来源，这样domain-invariant features就会被筛选出来。</p>
+
+<h1 id="cross-range-adaptation">Cross-range Adaptation</h1>
+
+<p>在<strong>gridded feature space</strong>里，目标是align不同ranges的features，在3D检测网络的某个中间层。即鼓励far-range ovserved objects去产生和near-range similar objects 一致的特征。</p>
+
+<p><img src="/assets/img/20210611/RAF2.png" alt="" /></p>
+
+<h2 id="adversarial-global-adaptation">Adversarial Global Adaptation</h2>
+
+<p>很简单，将区域划分为两部分，分别为near和far，并将其中的特征送入判别器C，来判断features的来源。<strong>这里的特征应该是使用区域内所有的特征，而不仅仅是目标的特征。</strong></p>
+
+<h2 id="fine-grained-local-adaptation">Fine-grained Local Adaptation</h2>
+
+<p>上述的全局对抗自适应提供了global feature alignment，而Fine-grained local adaptation被进一步提出来提升远距离目标的性能。在点云中，物体的尺寸是一致的，而和视角以及位置无关，也就是说,<strong>LiDAR observation pattern 在 near-range areas中similar objects的feature是far-range areas的feature的重复，只是near-range的有更密集的点。</strong>类似的问题在图像中很难解决，因为图像收到视角、光照、尺度等多重影响。</p>
+
+<p>这部分的思想就是让相近的目标具有相近的特征。因此是local的。将远处目标的特征视为近处目标的加权</p>
+
+\[\begin{equation}
+\hat{\mathbf{f}}_{t}=\sum_{i \in \mathcal{N}} w_{i t} \mathbf{f}_{i}
+\end{equation}\]
+
+<p>而这个权重由特征所属于的目标的相似性来决定，</p>
+
+\[\begin{equation}
+w_{i t}=\frac{e^{\left|\mathbf{o}_{i}-\mathbf{o}_{t}\right|}}{\sum_{j \in \mathcal{N}} e^{\left|\mathbf{o}_{j}-\mathbf{o}_{t}\right|}}
+\end{equation}\]
+
+<p>损失如下</p>
+
+\[\begin{equation}
+\mathscr{L}_{l}=\sum_{t \in \mathcal{F}}\left\|\mathbf{f}_{t}-\hat{\mathbf{f}}_{t}\right\|^{2}
+\end{equation}\]
+
+<p>注意，此处切断了$\hat{f_t}$的求导，这是为了防止near-range的特征退化。因为目的是调整远处的特征，而不是近处的。</p>
+
+<p><img src="/assets/img/20210611/RAT1.png" alt="" /></p>
+:ET

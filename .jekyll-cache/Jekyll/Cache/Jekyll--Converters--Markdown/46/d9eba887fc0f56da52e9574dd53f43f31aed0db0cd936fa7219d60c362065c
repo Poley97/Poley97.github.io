@@ -1,0 +1,58 @@
+I"�<blockquote>
+  <p>论文链接 ： https://arxiv.org/abs/2103.15297</p>
+</blockquote>
+
+<p>本文使用了点处理方法来进行检测。但是发现了一个未被注意到的问题，<strong>（在proposal中）单纯的提取点特征，比如PointNet，会使得学习到的点特征忽略size of proposal</strong>。本文主要解决这个问题，并且得到了显著的提升。</p>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>作者发现一个很有趣的<strong>size ambiguity problem</strong>： 对于体素方法，一般是将proposal等分成固定的尺寸，而<strong>PointNet仅仅将点特征做了aggregation而忽略了3D空间的尺寸</strong>。</p>
+
+<h2 id="contuibution">Contuibution</h2>
+
+<ul>
+  <li>提出一个R-CNN style的两阶段检测器，基于PointNet。对于现有的3D检测器是<strong>即插即用的（plug-and-play）</strong>，并不需要重新训练。</li>
+  <li>揭示了PointNet based检测器的<strong>size anbiguity problem</strong>。</li>
+  <li>提升性能，并且可以实时。</li>
+</ul>
+
+<h1 id="methods">Methods</h1>
+
+<h2 id="point-based-r-cnn">Point-based R-CNN</h2>
+
+<p>假设现在已经有一种目标检测算法，可以提供perposal，我们的目标就是<strong>refine the 7DOF bounding box parameters and scores of the proposals simultaneously</strong>。
+为了避免量化损失和插值，我们直接使用原始点云作为输入，而不是high-level DNN features.</p>
+
+<h3 id="input-features">Input Features</h3>
+<p>为了得到更多的contextual points，扩大了proposal的范围，如下所示。同时对于proposal里的点做了归一化。以及坐标的旋转，使得x轴和目标方向对其。
+<img src="/assets/img/20210616/LRCNNF1.png" alt="" /></p>
+
+<h3 id="backbone">Backbone</h3>
+
+<p>使用PointNet，如下所示。
+<img src="/assets/img/20210616/LRCNNF2.png" alt="" /></p>
+
+<h3 id="loss-function">Loss Function</h3>
+<p>和一般检测loss一样，只在方向上做了改动，防止方向损失明显大于其他损失。
+\(\begin{equation}
+\begin{gathered}
+\Delta \theta_{i}=\left(\theta_{i}^{g t}-\theta_{i}\right) \bmod \pi \\
+\mathbf{t}_{i}^{o}=\left\{\begin{array}{ll}
+\Delta \theta_{i}, &amp; \Delta \theta_{i} \leq \frac{\pi}{2} \\
+\Delta \theta_{i}-\pi, &amp; \Delta \theta_{i}&gt;\frac{\pi}{2}
+\end{array}\right.
+\end{gathered}
+\end{equation}\)</p>
+
+<h2 id="size-ambiguity-problem">Size Ambiguity Problem</h2>
+<p><img src="/assets/img/20210616/LRCNNF3.png" alt="" /></p>
+
+<p>如上图所示，ambiguity主要是不同的proposal都可能包含同样一组点，这对于框的回归是不利的（这个问题之前的论文也提出过，具体是哪个忘了）。<strong>上图的若干种方法都有自己的问题，比如（b）改变了形状，（c）不能包含位置信息，（d）外扩的体素可能是空的而不被利用，导致还是得不到边界信息，（e）边界信息直接和点特征结合，可以解决ambiguity问题（f）本文提出的方法</strong>。</p>
+
+<h3 id="virtual-points">Virtual Points</h3>
+<p>感觉和pvrcnn的grid是一样的，在空间中建立均匀分布的点来包含proposal的大小信息。</p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210616/LRCNNF4.png" alt="" /></p>
+:ET

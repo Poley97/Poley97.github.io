@@ -1,0 +1,39 @@
+I"e<blockquote>
+  <p>这部分内容来自于ST3D论文的附录。</p>
+</blockquote>
+
+<p># Overview</p>
+
+<p>不同数据及的差异包括：</p>
+<ul>
+  <li>LiDAR type</li>
+  <li>beam angles</li>
+  <li>point cloud density</li>
+  <li>size</li>
+  <li>locations for data collection
+<img src="/assets/img/20210617/ST3DTS7.png" alt="" />
+    <h1 id="domain-difference-and-systematic-bias">Domain Difference and Systematic bias</h1>
+  </li>
+</ul>
+
+<h2 id="lyft-annotation-discrepancies">Lyft Annotation Discrepancies</h2>
+
+<p>Lyft数据集中，道路中间的目标更倾向于被标注，而道路两侧的反之。而Waymo数据集的标注最为丰富，使用Waymo预训练模型在Lyft上检测就会产生如下效果。</p>
+
+<p><img src="/assets/img/20210617/ST3DFS8.png" alt="" /></p>
+
+<p>检测到了大量Lyft中没标注的目标。导致很难评估模型在Lyft上的性能。</p>
+
+<h2 id="analysis-of-domain-discrepancy">Analysis of Domain Discrepancy</h2>
+
+<p>这些数据集之间的domain gap主要包括</p>
+<ul>
+  <li>Content gap：比如目标大小，由于不同的目标采集地点</li>
+  <li>Point distribution gap: 由于不同的雷达线数导致</li>
+</ul>
+
+<h2 id="systematic-bias-on-pseudo-labels">Systematic Bias on Pseudo Labels</h2>
+
+<p>这主要是由于 <strong>Annotation style bias</strong>，有些标注的框比较宽松，有些比较紧。</p>
+
+:ET
