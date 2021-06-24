@@ -23,5 +23,10 @@ Cloud Based Retrieval(CVPR2019)** [论文链接](https://openaccess.thecvf.com/c
 
 # Review
 
-1. **Point-cloud based 3D object detection and classification methods for
-self-driving applications: A survey and taxonomy**[论文链接](https://www.sciencedirect.com/science/article/pii/S1566253520304097): *综述，基于点云的自动驾驶3D目标检测和分类方法。*
+1. **Point-cloud based 3D object detection and classification methods for self-driving applications: A survey and taxonomy**[论文链接](https://www.sciencedirect.com/science/article/pii/S1566253520304097): *综述，基于点云的自动驾驶3D目标检测和分类方法。*
+
+# Dataset
+
+1. **nuScenes: A multimodal dataset for autonomous driving**[论文链接](http://openaccess.thecvf.com/content_CVPR_2020/html/Sun_Scalability_in_Perception_for_Autonomous_Driving_Waymo_Open_Dataset_CVPR_2020_paper.html): *nuScenes数据集发表的论文，详细介绍了数据集的情况。*
+
+2. **Scalability in Perception for Autonomous Driving: Waymo Open Dataset**[论文链接](http://openaccess.thecvf.com/content_CVPR_2020/html/Sun_Scalability_in_Perception_for_Autonomous_Driving_Waymo_Open_Dataset_CVPR_2020_paper.html): *Waymo数据集发表的论文，详细介绍了数据集的情况。*

@@ -1,0 +1,45 @@
+I"�	<h1 id="introduction">Introduction</h1>
+
+<p>本文的内容来自于一个发现，<strong>Non-local得到的attention maps实际上是query-independent的，但是却为此付出了很多的计算。因此很自然的可以简化它，直接变为一个query-independent attention map，即GCNET</strong>。</p>
+
+<p><img src="/assets/img/20210624/GCNETF1.png" alt="" /></p>
+
+<p>在改进之后，作者发现网络结构非常像 Squeeze-Excitation Network。于是总结了一个three-step general framework,来统一了NL block 和 SE block。如下</p>
+<ol>
+  <li>A context modeling module： Aggregate所有位置的特征来组成一个global context feature；</li>
+  <li>A feature transform module: 捕捉channel-wise interdependencies；</li>
+  <li>A fusion module ：融合global context feature 到 所有位置的特征中。</li>
+</ol>
+
+<p>综上作者发现，NL和SE block均是次优的，在三个部分中两者均各有优劣。因此作者将他们结合起来，变为了新的global context block(GC block)。</p>
+
+<h2 id="analysis-on-non-local-networks">Analysis on Non-local Networks</h2>
+
+<p><img src="/assets/img/20210624/GCNETF2.png" alt="" /></p>
+
+<p>从上图可以看出，<strong>for different query positions, their attention maps are almost the same</strong>。为了严谨，作者还进一步统计了NL输入输出的向量的距离变化，如下表所示，可以看到输入之间的差距较大，但是得到的输出却更加近似，证实了上述可视化的直观表现。</p>
+
+<p><img src="/assets/img/20210624/GCNETT1.png" alt="" /></p>
+
+<h1 id="method">Method</h1>
+<h2 id="simplifuing-the-non-local-block">Simplifuing the Non-local Block</h2>
+
+<p>对Non-local进行简化，得到<strong>query-independent</strong>的attention map如下
+\(\begin{equation}
+\mathbf{z}_{i}=\mathbf{x}_{i}+\sum_{j=1}^{N_{p}} \frac{\exp \left(W_{k} \mathbf{x}_{j}\right)}{\sum_{m=1}^{N_{p}} \exp \left(W_{k} \mathbf{x}_{m}\right)}\left(W_{v} \cdot \mathbf{x}_{j}\right)
+\end{equation}\)</p>
+
+<p>移项以减小计算量
+\(\begin{equation}
+\mathbf{z}_{i}=\mathbf{x}_{i}+W_{v} \sum_{j=1}^{N_{p}} \frac{\exp \left(W_{k} \mathbf{x}_{j}\right)}{\sum_{m=1}^{N_{p}} \exp \left(W_{k} \mathbf{x}_{m}\right)} \mathbf{x}_{j}
+\end{equation}\)</p>
+
+<p>结构对比如下
+<img src="/assets/img/20210624/GCNETF4.png" alt="" /></p>
+
+<p>同时使用了bottolneck，以及减少了query，相比NL显著降低了计算量。</p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p>略</p>
+:ET

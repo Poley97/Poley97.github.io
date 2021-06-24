@@ -1,0 +1,74 @@
+I"�<blockquote>
+  <p>论文链接： https://arxiv.org/abs/2104.00902</p>
+</blockquote>
+
+<h1 id="introduction">Introduction</h1>
+<p>还是老生常谈的问题，在3D点云检测方法中，Voxel-based和Point-based各有优劣，于是本文提出了一种新的CNN结构，称为<strong>HVPR</strong>，由两个encoder，分别通过voxel-based和point-based特征，以及一个memory modele。
+<img src="/assets/img/20210622/HVPRF1.png" alt="" />
+同时，提出<strong>Attentive Multi-scale Feature Module (AMFM)</strong>,用来对混合特征进行refines，利用3D尺度的表征，这对于3D目标检测很重要。</p>
+
+<p>总的来说，提出的方法在速度和准确率上都有很好的表现。</p>
+
+<h1 id="approach">Approach</h1>
+
+<p><img src="/assets/img/20210622/HVPRF2.png" alt="" /></p>
+
+<p>如上图，网络结构一共分为三个部分，<strong>HVPR network, a backbone network with AMFM and a detection head</strong>。</p>
+
+<p>HVPR分为两个流，来分别提取voxel-based和Point-based信息。<strong>对于每个voxel-based特征，基于相似度和一个Point-based 特征做aggregation，来得到hybrid voxel-point representations</strong>。</p>
+
+<p>由于point-based特征需要的计算量较大，因此提出使用memory module来存储多重Point-based feature的prototypes，并将这些propotypes融合到voxel-based feature来得到最后的混合特征。这些Memory通过鼓励聚合propotypical和point-based特征相近来更新。同时，memory只用在test阶段，来达到快速目标检测的目的。</p>
+
+<p>之后将hybrid pseudo image输入Backbone中，AMFM来提取scale-aware features的信息，最终通过detection head进行检测。</p>
+
+<h2 id="hvpr-network">HVPR Network</h2>
+
+<h3 id="voxel-based-feature">Voxel-based feature</h3>
+<p>基本和PointPillar一样，略。</p>
+
+<h3 id="point-based-feature">Point-based feature</h3>
+<p>使用PointNet++，略。</p>
+
+<h3 id="voxel-pint-representation">Voxel-pint representation</h3>
+<p>要融合voxel和point特征，需要建立他们之间的点对。这里使用点积作为两者相似度的度量，如下</p>
+
+\[\begin{equation}
+C(n, m)=\mathbf{f}_{\mathrm{vox}}(n)^{\top} \mathbf{f}_{\mathrm{pts}}(m)
+\end{equation}\]
+
+<p>选择每个体素特征的K近邻点特征，并通过相似度归一化他们对应的概率。如下
+\(\begin{equation}
+P(n, k)=\frac{\exp \left(\mathbf{f}_{\mathrm{vox}}(n)^{\top} \hat{\mathbf{f}}_{\mathrm{pts}}(n, k)\right)}{\sum_{k^{\prime}} \exp \left(\mathbf{f}_{\mathrm{vox}}(n)^{\top} \hat{\mathbf{f}}_{\mathrm{pts}}\left(n, k^{\prime}\right)\right)}
+\end{equation}\)</p>
+
+<p>之后使用上述概率得到融合的点特征，并cat到体素特征上。</p>
+
+\[\begin{equation}
+\mathbf{g}_{\mathrm{pts}}(n)=\sum_{k} P(n, k) \hat{\mathbf{f}}_{\mathrm{pts}}(n, k)
+\end{equation}\]
+
+<h3 id="voxel-memory-representation">Voxel-memory representation</h3>
+
+<p>点特征的计算非常慢，典型的例子就是PointRCNN。为了解决这个问题，本文使用memory modele。和上述方法一样，只是将计算的点特征换为Memory中存储的点特征Prototypes，然后同样计算对应的概率，加权求和，融合特征。Memory的更新如下所示</p>
+
+\[\begin{equation}
+\mathcal{L}_{\text {mem }}=\sum_{n}\left\|\mathbf{g}_{\text {pts }}(n)-\mathbf{g}_{\text {mem }}(n)\right\|_{2}
+\end{equation}\]
+
+<p>其中$\bold{g_{pts}}$表示融合后的memory items，即让每个体素对应的aggregated memory item尽可能和它自己相似。这种方法在test过程中可以节省大量的时间，同时可以保持相同的特征质量。</p>
+
+<h2 id="backbone-network-with-amfm">Backbone Network with AMFM</h2>
+<p><img src="/assets/img/20210622/HVPRF3.png" alt="" /></p>
+
+<p>实际上是一个空间注意力模块，来利用3D sacale fetaure。AMFN通过element-waise multiplication 来对multi-scale feature 进行 refine。</p>
+
+<p>我们观察到3D point clouds是利用的，并且密度随着到LiDAR传感器的变化而大幅度的变化。<strong>因此，这种稀疏和不均匀的pattern以及他们的到传感器的距离反映了scale information of 3D objects</strong>。</p>
+
+<p>将一组voxel representation输入，得到voxel-based feature。这里和voxel-wise feature类似，使用一个tiny pointnet来提取特征,得到3D Scale Feature，之后利用它来产生一个Attention map，如上图所示。（感觉这也类似于Transform的注意力公式，只是换个说法）</p>
+
+<h2 id="detection-head-and-loss">Detection Head and Loss</h2>
+
+\[\begin{equation}
+\mathcal{L}=\frac{1}{N_{\text {pos }}}\left(\lambda_{\text {reg }} \mathcal{L}_{\text {reg }}+\lambda_{\text {dir }} \mathcal{L}_{\text {dir }}+\lambda_{\text {cls }} \mathcal{L}_{\text {cls }}+\lambda_{\text {mem }} \mathcal{L}_{\text {mem }}\right)
+\end{equation}\]
+:ET

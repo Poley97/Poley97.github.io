@@ -1,0 +1,68 @@
+I"�<blockquote>
+  <p>论文链接：https://arxiv.org/abs/2012.04355</p>
+</blockquote>
+
+<h1 id="概述">概述</h1>
+
+<p>提出了一种3D object detection的半监督方法，同时适用于室内和室外场景。利用一个<strong>teach-student mutual learning framework</strong>来在有标注和无标注数据传播信息，通过伪标签的方式。但是，由于任务复杂，因此伪标签严重的收到噪声影响，并不能直接使用。因此提出一种<strong>confidence-based filter mechanism</strong>，通过objectness和class probability来滤除低质量的伪标签。但是这样的标签并不能提供足够的定位质量，因此提出使用<strong>预测3D Iou</strong>的方式来解决这一问题并且使用<strong>category-aware self-adjusted thresholds</strong>来去除低质量的定位信息。本方法在室内场景和室外场景数据集中均体现出很强的性能。</p>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>和概述内容差不多的地方就略了。</p>
+
+<p>对于使用IOU过滤伪标签。和objectness与class confidence不同，这两个对于high confidence工作的很好。但是IOU不是，对于小误差非常敏感，因此阈值的选择非常重要。太高了会导致没有伪标签可以用。因此本文提出了一个<strong>Lower-Half Suppression(LHS)</strong>来一半的<strong>highly-overlapping boxes with low predicted IoU</strong>。这样可以自动的去设置一个<strong>dynamic and class-aware的阈值</strong>，效果明显好于IoU-guided NMS。</p>
+
+<p><img src="/assets/img/20210622/3DIOUF1.png" alt="" /></p>
+
+<h1 id="related-works">Related works</h1>
+
+<p>忽略常见的部分。</p>
+
+<h2 id="iou-estimation">IoU Estimation</h2>
+<p>IoU 预测在STD和PV-RCNN中都有类似的功能，用来做IoU-guided NMS。这主要是为了解决class confidence和bbox的不对齐问题。但是这个IOU是不能对Bounding box size做反向传播的。
+因此本文提出了一个可求导的 point-cloud-based 3D IoU estimation module。</p>
+
+<h1 id="method">Method</h1>
+
+<h2 id="iou-aware-3d-object-detection">IoU-aware 3D Object Detection</h2>
+<p>简述了一下VoteNet和PV-RCNN。略</p>
+
+<h2 id="3dioumatch-for-ssl-on-3d-object-detection">3DIoUMatch for SSL on 3D object detection</h2>
+
+<p>以VoteNet为例， PV-RCNN的改进和VoteNet类似。本文建立了一个<strong>IoU-aware VoteNet for SSL on 3D object detection</strong>。分为两个阶段：<strong>预训练以及半监督学习</strong>。</p>
+
+<h3 id="pre-training">Pre-training</h3>
+<p>用上述IoU-aware VoteNet for SSL on 3D object detection在有监督训练集上做一个预训练。</p>
+
+<h3 id="semi-supervised-training-through-a-teacher-student-framework">Semi-supervised training through a teacher-student framework</h3>
+<p>在半监督学习中，同时使用监督数据和伪标签数据来对students网络进行学习。两边的loss分开计算，如下
+\(\begin{equation}
+L=L_{l}\left(\left\{\boldsymbol{x}_{i}^{l}\right\}_{i=1}^{N_{l}},\left\{\boldsymbol{y}_{i}^{l}\right\}_{i=1}^{N_{l}}\right)+\lambda_{u} L_{u}\left(\left\{\boldsymbol{x}_{i}^{u}\right\}_{i=1}^{N_{u}},\left\{\tilde{\boldsymbol{y}}_{i}^{u}\right\}_{i=1}^{N_{u}}\right)
+\end{equation}\)</p>
+
+<p>本文使用EMA teacher。同时为了保持teacher network的优势地位，只对teacher的输入数据做weak augmentation，同时对student network做 stronger data augmentation。</p>
+
+<h2 id="pseudo-label-filtering-and-deduplication">Pseudo-Label Filtering and Deduplication</h2>
+
+<p>在teacher-student framework中，两者的性能差距实际是很小的，因为两者只是在权重和数据增强的强度上略有不同。因此，<strong>teacher prediction并不一定总强于student prediction，在一些样本中，student可能更强</strong>。对于无监督数据，student只会受益于那些比它自己准确的预测，因此，需要过滤掉一些<strong>low-quality prediciotns from the teacher model and only supervise the student model with the rest of the teacher model predictions</strong>。</p>
+
+<h3 id="jointly-filtering-based-on-class-objectness-localization-confidences">Jointly filtering based on class, objectness localization confidences</h3>
+
+<p>使用一个objectness threshold 来过滤 boundingbox，同时进一步使用一个classification confidence threshold 来过滤更有可能有错误class label的bbox。</p>
+
+<p>这两个参数都是用来判断bbox 预测参数的准确性的，而没有位置信息。因此本文推出一个3D IoU来对每个Bounding box进行预测，并设置一个对应的阈值来过滤那些查的位置预测。</p>
+
+<p>综上，这个<strong>Jointly filtering 一共有3个阈值，全方位的过滤伪标签。</strong></p>
+
+<h3 id="iou-guided-lower-half-suppression-for-deduplication">IoU-guided lower-half suppression for deduplication</h3>
+<p>由于confidence-based filtering之后，仍然有很多重复的bounding box，会给伪标签带来有害的噪声。因此需要使用NMS，传统的NMS使用class confidence来做为抑制的依据，在VoteNet中，则是使用Objectness confidence。但这样并不包含位置信息，因此使用一个 train-time IoU-guided NMS在本质上就会更好。但是，这样选择出来的结果仍然可能是次优的。因为假设这样一种场景：<strong>sutdent网络预测了一个真值左边0.2m的框，那么其仍然是一个前景，训练时会收到监督。然是如果经过NMS后产生的伪标签在了真值右边0.1m，那么这个预测出来的Bounding box可能就会失去监督（因为太远了）而导致被当成一个背景来对待。</strong>这太严格的NMS可能会导致只有很小一部分student model predictions受到监督，由于我们不能知道最好的伪标签是哪个，所以最好放宽NMS。即本文提出的<strong>Lower-Half Suppression</strong>。其是对每个类别单独对待的，抑制一个类别中具有低预测IoU的bounding box，其实相当于<strong>a second-step class-aware self-adjusted filtering</strong>。</p>
+
+<h3 id="final-step-pseudo-label-processing">Final-step pseudo-label processing</h3>
+<p>综上已经得到了高质量的预测结果（伪标签），拿来做有监督训练即可。由于输入有增强，对应的bbox也要一起增强。</p>
+
+<h2 id="selective-supervision-using-pseudo-labels">Selective Supervision using Pseudo-Labels</h2>
+<p>由于围标全并不完全正确，也不能cover所有的gt，因此对他们可以保持相对的信任。由于可能遗漏，<strong>因此student网络产生的离所有伪标签都很远的预测并不一定是negative，而严格的使用伪标签监督会亚种的影响性能。</strong>并学习VoteNet的监督方法，使用比较宽松的监督。<strong>we supervise bounding box parameters and class for a prediction only if the vote that generates this prediction is within 0:3m of any bounding box in the pseudo-labels</strong>。</p>
+
+<h1 id="experiments">Experiments</h1>
+<p><img src="/assets/img/20210622/3DIOUT1.png" alt="" /></p>
+:ET

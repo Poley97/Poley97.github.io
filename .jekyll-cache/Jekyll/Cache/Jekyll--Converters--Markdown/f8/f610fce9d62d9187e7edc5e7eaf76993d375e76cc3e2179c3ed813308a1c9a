@@ -1,0 +1,49 @@
+I"Q	<blockquote>
+  <p>论文链接 ： https://openaccess.thecvf.com/content_cvpr_2018/papers/Wang_Non-Local_Neural_Networks_CVPR_2018_paper.pdf</p>
+</blockquote>
+
+<p>目的：<strong>捕捉Long-range dependencies，时间上的或者空间上的</strong>。</p>
+
+<h1 id="inreoduction">Inreoduction</h1>
+
+<p>传统的Recurrent或者Convlution网络都是捕捉局部信息的，为了捕捉到更大范围的信息，只能不断的重复这种网路哦结构，带来的大的计算量，以及BP时候的困难。因此提出了本网络，这种<strong>non-local  operation是经典non-local mean operation在CV上的泛化。这种操作是通过甲酸feature map上的所有点的加权求和来计算一个点的输出响应</strong>。</p>
+
+<h1 id="non-local-neural-networks">Non-local Neural Networks</h1>
+
+<h2 id="formulation">Formulation</h2>
+
+<p>Non-local Neural Networks的定义如下
+\(\begin{equation}
+\mathbf{y}_{i}=\frac{1}{\mathcal{C}(\mathbf{x})} \sum_{\forall j} f\left(\mathbf{x}_{i}, \mathbf{x}_{j}\right) g\left(\mathbf{x}_{j}\right)
+\end{equation}\)</p>
+
+<p>上述操作的特点是所有位置的信息都被包含进来，这点是它和卷积的主要区别。和fc不同的是，这里计算点对函数，而不是直接学习权值。</p>
+
+<h2 id="instantiations">Instantiations</h2>
+<p>一些点对函数的例子。</p>
+
+<p><strong>Gaussion</strong>
+\(\begin{equation}
+f\left(\mathbf{x}_{i}, \mathbf{x}_{j}\right)=e^{\mathbf{x}_{i}^{T} \mathbf{x}_{j}}
+\end{equation}\)
+<strong>Embedded Gaussion</strong>
+\(\begin{equation}
+f\left(\mathbf{x}_{i}, \mathbf{x}_{j}\right)=e^{\theta\left(\mathbf{x}_{i}\right)^{T} \phi\left(\mathbf{x}_{j}\right)}
+\end{equation}\)
+self-attention可以视为Embedded Gaussion的一种特殊情况。
+<strong>Dot product</strong>
+\(\begin{equation}
+f\left(\mathbf{x}_{i}, \mathbf{x}_{j}\right)=\theta\left(\mathbf{x}_{i}\right)^{T} \phi\left(\mathbf{x}_{j}\right)
+\end{equation}\)
+<strong>Concatenation</strong>
+\(\begin{equation}
+f\left(\mathbf{x}_{i}, \mathbf{x}_{j}\right)=\operatorname{ReLU}\left(\mathbf{w}_{f}^{T}\left[\theta\left(\mathbf{x}_{i}\right), \phi\left(\mathbf{x}_{j}\right)\right]\right)
+\end{equation}\)</p>
+
+<h2 id="non-local-block">Non-local Block</h2>
+<p>\(\begin{equation}
+\mathbf{z}_{i}=W_{z} \mathbf{y}_{i}+\mathbf{x}_{i}
+\end{equation}\)</p>
+
+<p>如上，以一种残差模块的形式组成网络。</p>
+:ET
