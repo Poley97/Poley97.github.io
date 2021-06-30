@@ -1,0 +1,50 @@
+I"�<blockquote>
+  <p>论文链接：https://arxiv.org/abs/2007.12392</p>
+</blockquote>
+
+<h1 id="概述">概述</h1>
+
+<p>3D LiDAR目标检测是自动驾驶里的一个核心技术，虽然LiDAR数据是一直在获取的，但是大多数的检测算法是各个帧独立检测的，而忽略了时间上的有用信息。为了解决这个问题提出了一个稀疏的<strong>LSTM-based multi-frame</strong> 3D检测算法。使用<strong>U-Net style</strong>的3D稀疏卷积网络来提取特征，然后使用LSTM来预测当前帧中的3D目标。</p>
+
+<h1 id="introduction">Introduction</h1>
+<p>如今的3D检测算法基本都基于单帧，很少有人考虑时间上的关系。KITTI对于每个场景只提供了一副扫描，但是后续的数据集提供了但场景内的连续采集数据（比如Waymo和nuSence）。</p>
+
+<p><img src="/assets/img/20210628/LT3DF1.png" alt="" /></p>
+
+<p>主要思想是使用LSTM的记忆来对之前帧的目标检测信息进行编码，用来协助当前帧的目标检测。和之前简单cat多时间的点特征方法相比，本方法只用相对小数量的和之前检测有关的3D点进入LSTM，而不是全部输入。</p>
+
+<p>本文LSTM模块中包含一个稀疏3D卷积，并将计算得到的隐特征作为检测头的输入，使用一个图卷积神经网络来得到最后的检测结果。</p>
+
+<h1 id="method">Method</h1>
+
+<p>方法流程如下图所示
+<img src="/assets/img/20210628/LT3DF2.png" alt="" /></p>
+
+<p>将点输入3D稀疏卷积网络，得到feature,通过LSTM得到Hidden feature 和 Memory feature。其中，Hidden feature用于预测当前帧的3D目标。</p>
+
+<h2 id="3d-sparse-conv-u-net">3D Sparse Conv U-Net</h2>
+
+<p>使用一个U-Net style encoder-decoder,之后再去体素化，得到最终的点特征。</p>
+
+<h2 id="3d-sparse-conv-lstm">3D Sparse Conv LSTM</h2>
+
+<p>结构如下
+<img src="/assets/img/20210628/LT3DF3.png" alt="" /></p>
+
+<p>将所有的点特征一起（包括backbone，memory和hidden feature）一起做体素化，提取特征再去体素化。对于memory和hidden feature，值保留了具有高语义得分的点。</p>
+
+<h2 id="joint-voxelization">Joint Voxelization</h2>
+<p>由于目标在场景中的运动（即使进行了ego motion的补偿），输入和隐特征并不是完全对齐的，因此使用jointly voxelize这三个中点云，之后将三个voxel grids在feature dimension 接起来。如果一个点云的某个voxel是空的，而剩下两个相同位置是空的，则用0填充。这使得最后得到的点云voxel grid覆盖的范围实际上是 union of the spatial extent of all participating point clouds which is still extremely sparse。</p>
+
+<h2 id="object-detection">Object Detection</h2>
+<p>使用voxelized hidden features来产生proposal，之后得到的预测被de-voxelized来得到pre point bounding box predictions。</p>
+
+<p>建立了一个KNN图在per point predictions上，预测通过预测每点权重得到，这个权重决定了每个点相对于它邻居的重要程度。</p>
+
+<h1 id="experiments-results">Experiments Results</h1>
+
+<p>连续帧点云合成图
+<img src="/assets/img/20210628/LT3DF4.png" alt="" /></p>
+
+<p><img src="/assets/img/20210628/LT3DT1.png" alt="" /></p>
+:ET

@@ -7,8 +7,7 @@ cover: '/assets/img/20210526/PCReview.png'
 tags: 论文阅读
 ---
 
-> 论文地址
-> 参考地址
+> 论文链接： https://www.sciencedirect.com/science/article/pii/S1566253520304097
 
 
 个人感想：这是一篇非常全面的综述，完整仔细阅读一遍基本相当于整理了一遍我之前所看过的论文，值得一读。

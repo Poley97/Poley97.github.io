@@ -11,7 +11,7 @@ tags: 论文阅读
 
 
 # Introduction 
-激光雷达的数据特点决定了其数据点随着距离的增加而明显的degrades，导致在远处物体处交叉的性能。本文提出一种cross-range adaptation，来使得远处的物体得到和近处物体类似的性能。
+激光雷达的数据特点决定了其数据点随着距离的增加而明显的degrades，导致在远处物体处检测的性能。本文提出一种cross-range adaptation，来使得远处的物体得到和近处物体类似的性能。
 
 本文实际将其视为一种**cross-domain的迁移学习任务**。将**近距离区域视为sourece domain,远距离区域视为target domain**。
 

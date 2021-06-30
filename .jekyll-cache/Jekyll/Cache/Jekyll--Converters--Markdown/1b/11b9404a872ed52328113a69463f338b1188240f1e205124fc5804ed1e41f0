@@ -1,0 +1,67 @@
+I"�<blockquote>
+  <p>论文链接： https://arxiv.org/abs/2004.00831</p>
+</blockquote>
+
+<p>本文提出<strong>Progressive Population Based Augmentation(PPBA)</strong>算法，通过不断缩小搜索空间，以及自适应的使用之前迭代发现的最优参数来<strong>学习数据增强策略</strong>。</p>
+
+<h1 id="introduction">Introduction</h1>
+<p>在2D图像领域已经证明，在数据增强上大量投入，可能带来与更先进的模型带来的增益等量的增益。</p>
+
+<p>主要贡献：</p>
+<ul>
+  <li>提出一种新的对于3D点云的自动数据增强方法</li>
+  <li>相比随机搜索数据增强，计算量更小，提升更明显</li>
+  <li>可以提升10倍的数据效率</li>
+  <li>同样可以泛化到2D情况</li>
+</ul>
+
+<h1 id="related-wroks">Related wroks</h1>
+<p>其中接受了一些2D、3D目标检测中常用的数据增强方法，略。</p>
+
+<h1 id="methods">Methods</h1>
+
+<p>作者将自动数据增强问题视为一个<strong>hyperparameter schedule learning</strong>的特殊情况。提出的方法主要包含两部分：</p>
+<ul>
+  <li><strong>一个特定的对点云输入的搜索空间</strong></li>
+  <li><strong>一个选择焕发来最优化数据增强参数</strong></li>
+</ul>
+
+<h2 id="search-space-for-3d-point-cloud-augmentation">Search Space for 3D Point Cloud Augmentation</h2>
+
+<p><img src="/assets/img/20210628/PPF1.png" alt="" />
+<img src="/assets/img/20210628/PPT7.png" alt="" />
+<img src="/assets/img/20210628/PPT8.png" alt="" /></p>
+
+<p>对于提出的搜索空间，数据增强策略包含N个增强操作。其中，每个操作都和一个概率以及若干超参数相联系。</p>
+
+<p>对所提出的搜索空间包含的基本数据增强方法可以分为两类：<strong>global operations and local operations</strong>。所使用的方法如上图所示，一共8个操作，29个参数。</p>
+
+<h2 id="learning-through-progressive-population-based-search">Learning through Progressive Population Based Search</h2>
+
+<p>这个问题可以描述为，给定一个metric $\Omega$ 和模型 $\theta$ ，对于一组数据增强参数 $\lambda$ 寻找最优结果如下。其中这里的metric使用的是<strong>mAP</strong>。</p>
+
+\[\begin{equation}
+\boldsymbol{\lambda}^{*}=\arg \max _{\boldsymbol{\lambda} \in \Lambda^{T}} \Omega(\theta)
+\end{equation}\]
+
+<p>在训练过程中，一般使用objective function $L$来代替 metric $\Omega$，如下</p>
+
+\[\begin{equation}
+\boldsymbol{\theta}_{\boldsymbol{t}}^{*}=\arg \min _{\theta \in \Theta} L\left(\mathcal{X}, \mathcal{Y}, \lambda^{t}\right)
+\end{equation}\]
+
+<p>在搜索过程中，整个模型的训练被分为$N$次迭代，每次迭代，$M$的模型使用不同的数据增强参数$\lambda_t$来并行训练，并且使用metric $\Omega$ 来进行评测。所有在之前iterations中训练的模型都被放入 <strong>population</strong> $\mathcal{P}$。在初始的iteration，所有的模型和数据增强参数都是<strong>randomly initialized</strong>。</p>
+
+<p>在第一个iteration结束之后，通过一个<strong>exploit phase</strong>来决定模型的参数。这个阶段从population $\mathcal{P}$中选择一个性能较好的 parent model。 之后进入 <strong>exploration phase</strong>，此时augmentation operation的一个子集会被explored，通过对其parent model中的对应增强参数进行<strong>mutating(突变)</strong>来做优化，同时剩下的增强参数直接从parent model继承。</p>
+
+<p>和<strong>Population Based Training</strong>类似，<strong>exploit phase</strong>会保留好的模型，同时替换掉差的模型，在每个iteration结束之后。但是与其不同，本文提出的方法一次<strong>只关注与数据增强超参数的一个子集</strong>，而他的继任者可能会关心和前辈不同的另一个子集。因此，剩余的参数会根据目前最优的operations参数进行调整。对于还当前模型<strong>还没有做过exploration的参数，在继承的时候，也继承对这个参数做过exploration的模型中性能最好的该参数的值，如下图所示。</strong></p>
+
+<p>其流程如下所示
+<img src="/assets/img/20210628/PPF2.png" alt="" /></p>
+
+<p>PPBA一次只调整搜索空间中的一小部分参数，并且之前迭代的历史信息在优化过程中也会被重复利用。通过将搜索范围缩小到当前的特定子集，这使得<strong>区分差的数据增强参数变得更加容易</strong>。为了减小因为单次搜索空间减小而造成的搜索速度下降，在每个iteration，每个seccessors的每个operation的最优参数都前辈中发现的最优参数中继承。</p>
+
+<p>不同搜索范围策略的对比如下图所示，本文应该是第二种。</p>
+
+<p><img src="/assets/img/20210628/PPF3.png" alt="" /></p>
+:ET

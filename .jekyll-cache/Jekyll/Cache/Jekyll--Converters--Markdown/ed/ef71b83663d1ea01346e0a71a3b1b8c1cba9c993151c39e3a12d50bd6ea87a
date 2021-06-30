@@ -1,0 +1,60 @@
+I"m<h1 id="概述">概述</h1>
+
+<p>基于自动驾驶场景中点云极度稀疏的问题，我们提出了一种pillar-based approach来解决由于anchors造成的不平衡问题。这一使用<strong>anchor-free</strong>方法，通过圆柱体投影到多视角特征学习，对每个Pillar预测Bounding box，而不是每个Point或者每个Anchor。</p>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>如今最广泛使用的是PointPillar和multi-view fusion(MVF)，在效率和性能上都处于顶尖。但这些方法都是需要用anchor的，anchor的超参数调整降低了算法的实用性，同时带来极度的anchor不平衡。实际上positive anchor只占全部anchor 的<strong>0.1%</strong>。</p>
+
+<p>本文提出的方法是PointPillar和MVF的拓展，和过去的工作对比，我们发现anchor是不必要并且不高效的。同时，我们发现MVF中的<strong>spherical projection</strong>会导致不必要的场景形变，因此，对此使用<strong>cylindrical view</strong>进行补偿。对于Pillar-to-point projection所面临的混叠问题，使用bilinear interpolation来解决。</p>
+
+<h1 id="method">Method</h1>
+
+<p>本文提出方法的三个主要模块：</p>
+<ul>
+  <li><strong>Cylindrical view projection</strong></li>
+  <li><strong>A pillar-based pre-diction paradigm</strong></li>
+  <li><strong>A pillar-to-point projection module with bilinear interpolation</strong></li>
+</ul>
+
+<p><img src="/assets/img/20210626/PODF1.png" alt="" /></p>
+
+<h2 id="overall-architecture">Overall architecture</h2>
+
+<p>如上图所示，分别从BEV和cylindrical view提取特征，再融合，再转换为BEV，后续和Pointpillar中一样。但是不用anchor,而是对BEV中的每个pillar做一个预测。</p>
+
+<h2 id="cylindrical-view">Cylindrical view</h2>
+
+<p>如下</p>
+
+\[\begin{equation}
+\rho_{i}=\sqrt{x_{i}^{2}+y_{i}^{2}} \quad \varphi_{i}=\arctan \frac{y_{i}}{x_{i}} \quad z_{i}=z_{i}
+\end{equation}\]
+
+<p>并以具有相同$\phi$和相同$z$的基准来grouping points。其和Spherical View的对比如下，可以看到，后者发生了distortion，使目标变小了。</p>
+
+<p><img src="/assets/img/20210626/PODF2.png" alt="" /></p>
+
+<h2 id="pillar-based-prediction">Pillar-based prediction</h2>
+<p>\(\begin{equation}
+\mathrm{p}=f_{\mathrm{cls}}\left(\phi^{\text {pillar }}\right) \text { and }\left(\Delta_{x}, \Delta_{y}, \Delta_{z}, \Delta_{l}, \Delta_{w}, \Delta_{h}, \theta^{p}\right)=f_{\mathrm{reg}}\left(\phi^{\text {pillar }}\right)
+\end{equation}\)</p>
+
+<p>其和基于anchor的方法区别如下</p>
+
+<p><img src="/assets/img/20210626/PODF3.png" alt="" /></p>
+
+<h2 id="bilinear-interpolation">Bilinear interpolation</h2>
+
+<p>上述特征融合过程中，需要进行pillar-to-point的过程，将特征变回点特征。之前一直使用<strong>nearest neighbor interpolation</strong>，这会带来量化损失，因此本文使用双线性插值代替。</p>
+
+<p><img src="/assets/img/20210626/PODF4.png" alt="" /></p>
+
+<h2 id="loss-function">Loss function</h2>
+
+<p>使用和SECOND一样的LOSS，略。</p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210626/PODT1T2.png" alt="" /></p>
+:ET

@@ -9,7 +9,7 @@ tags: 论文阅读
 
 论文链接： https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123680324.pdf
 
-本文首先回顾了多重local aggregation operators，并且使用相同的深度残差结构来研究他们的性能。并提出了**Position Pooling(PosPool)**,相比现有的复杂方法具有类似甚至根号的性能。
+本文首先回顾了多重local aggregation operators，并且使用相同的深度残差结构来研究他们的性能。并提出了**Position Pooling(PosPool)**,相比现有的复杂方法具有类似甚至更好的性能。
 
 # Introduction
 
