@@ -66,10 +66,33 @@ conda config --set remote_read_timeout_secs 100
 ## NVIDIA显示驱动
 本次安装直接使用Ubuntu系统中**Software & update**中的附加驱动安装。
 
+使用.run安装的时候需要问题，提示已经加载了模块'nvidia-drm'，无法安装。
+故卸载此模块
+```
+sudo systemctl isolate multi-user.target
+
+sudo modprobe -r nvidia-drm
+```
+
+即可
+
+上面的方法安装完了还是有错，因此求助于强大apt，直接在线安装
+
+```
+sudo add-apt-repository ppa:graphics-drivers/ppa
+sudo apt update
+ubuntu-drivers devices
+sudo apt-get install nvidia-XX你需要的版本号XX
+或安装全部驱动
+sudo ubuntu-drivers autoinstall
+重启
+```
 ## CUDA & cudnn安装
 > https://blog.csdn.net/ashome123/article/details/105822040
 > https://blog.csdn.net/chch2010523/article/details/107929168
 注：安装cuda11不用降级gcc。
+
+
 
 
 
