@@ -4,7 +4,7 @@ title: 'BoW Pooling: A Plug-and-Play Unit for Feature Aggregation of Point Cloud
 date: 2021-07-20
 author: Poley
 cover: '/assets/img/20210720/BoW.png'
-tags: 论文清单
+tags: 论文阅读
 ---
 
 > 论文链接：https://www.aaai.org/AAAI21Papers/AAAI-1163.ZhangX.pdf

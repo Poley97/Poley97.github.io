@@ -1,0 +1,93 @@
+---
+layout: post
+title: 'PointConv: Deep Convolutional Networks on 3D Point Clouds'
+date: 2021-07-26
+author: Poley
+cover: '/assets/img/20210726/PointConv.png'
+tags: 论文阅读
+---
+
+给出了一种真正意义上的点卷积，从连续卷积的原理出发，使用MLP学习权重，以及kernel density setimation来估计密度函数来实现。可以实现对3D空间内的任意点进行translation-invariant和permutation-invariant卷积。
+
+# Introduction
+本文提出的3D卷积方法可以用于3D空间中的非均匀采样点。作者发现卷积操作可以被视为连续卷积操作的离散近似，在3D空间，可以将卷积操作的权重当作关于局部3D坐标的（Lipschitz）连续函数来处理（相对于参考点）。这种连续函数可以使用MLP来近似。这个方法已经在之前被提出过，但是没有考虑到非均匀采样的问题。作者提出使用 inverse density scale 来对MLP学习到的连续函数进行re-weight，对应与对连续函数的蒙特卡洛近似。上述方法，称为PointConv。
+
+同时，本文也提出了对应的反卷积方法，可以用于分割等任务。
+
+# PointConv
+
+PointConv相当于是对3D连续卷积操作的蒙特卡洛近似的一个拓展。
+
+## Convolution on 3D Point Clouds
+
+一维卷积
+
+$$
+\begin{equation}
+(f * g)(\mathbf{x})=\iint_{\boldsymbol{\tau} \in \mathbb{R}^{d}} f(\boldsymbol{\tau}) g(\mathbf{x}+\boldsymbol{\tau}) d \boldsymbol{\tau}
+\end{equation}
+$$
+![](/assets/img/20210726/PointConvF1.png)
+传统的2D卷积实际上是将上述做了2D离散化，但是点云并不会定位到fixed grid上，而是可以取任何的连续值，因此不能直接用传统的离散卷积。回到传统的3D连续卷积上，其公式如下
+$$
+\begin{equation}
+\begin{aligned}
+&\operatorname{Conv}(W, F)_{x y z}= \\
+&\iiint_{\left(\delta_{x}, \delta_{y}, \delta_{z}\right) \in G} W\left(\delta_{x}, \delta_{y}, \delta_{z}\right) F\left(x+\delta_{x}, y+\delta_{y}, z+\delta_{z}\right) d \delta_{x} \delta_{y} \delta_{z}
+\end{aligned}
+\end{equation}
+$$
+
+将其离散化，可以得到如下
+
+$$
+\begin{equation}
+\begin{aligned}
+&\operatorname{PointConv}(S, W, F)_{x y z}= \\
+&\sum_{\left(\delta_{x}, \delta_{y}, \delta_{z}\right) \in G} S\left(\delta_{x}, \delta_{y}, \delta_{z}\right) W\left(\delta_{x}, \delta_{y}, \delta_{z}\right) F\left(x+\delta_{x}, y+\delta_{y}, z+\delta_{z}\right)
+\end{aligned}
+\end{equation}
+$$
+
+其中S是反密度函数，因为点云并不是均匀采样的。如下图所示
+![](/assets/img/20210726/PointConvF2.png)
+
+本文的主要思想是通过MLP，3D坐标和反密度函数来近似权重函数。MLP对所有点都是共享的，以此来维持permutation invariance。**密度估计使用kernel density estimation(KDE)进行离线估计**，之后通过MLP来做一个1D的非线性变换，其主要目的是为了让网络自适应的来决定是否使用当前的密度估计。
+
+因此可以得到如下的表达式
+
+$$
+\begin{equation}
+\mathbf{F}_{\text {out }}=\sum_{k=1}^{K} \sum_{\text {in }=1}^{C_{i n}} S(k) \mathbf{W}\left(k, c_{\text {in }}\right) F_{\text {in }}\left(k, c_{\text {in }}\right)
+\end{equation}
+$$
+
+上述的密度函数re-weight实际上是从蒙特卡洛重要性采样中得到
+
+$\int f(x) d x=\int \frac{f(x)}{p(x)} p(x) d x \approx \sum_{i} \frac{f\left(x_{i}\right)}{p\left(x_{i}\right)}$, for $x_{i} \sim p(x) .$ Point clouds
+are often biased samples because many sensors have difficulties measuring points near plane boundaries, hence needing this reweighting
+
+由上式可以得到PointConv的流程如下所示
+
+![](/assets/img/20210726/PointConvF3.png)
+
+上图只是对一个local提取特征，还需要通过一个herarchical的结构来对全部点云提取特征。在这点上直接使用了Pointnet++的结构。
+
+## Feature Propagation Using Deconvolution
+
+和PointNet++类似，先插值，再conv，如下所示。
+
+![](/assets/img/20210726/PointConvF4.png)
+
+# Efficient PointConv
+上述的方法对于消耗内存较多，效率不高。作者从理论上找到了一种等效的运算，实际应用中更加高效。
+
+![](/assets/img/20210726/PointConvL1.png)
+
+证明在原文中给出，这里省略了。其得到的流程图如下所示
+
+![](/assets/img/20210726/PointConvF5.png)
+
+# Experiments
+
+![](/assets/img/20210726/PointConvT1.png)

@@ -4,7 +4,7 @@ title: ' Automotive LiDAR Technology: A Survey'
 date: 2021-06-29
 author: Poley
 cover: '/assets/img/20210629/LT.png'
-tags: 论文清单
+tags: 论文阅读
 ---
 
 >论文链接 ： 
