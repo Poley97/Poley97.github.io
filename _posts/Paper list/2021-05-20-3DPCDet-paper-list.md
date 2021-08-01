@@ -50,14 +50,25 @@ tags: 论文清单
     
 16. **Improving 3D Object Detection through Progressive Population Based Augmentation(ECCV2020)**[论文链接](https://arxiv.org/abs/2004.00831): *将3D目标检测中的超参数设置视为一个hyperparameter schedule learning的问题，通过 Progressive Population Based Search来局部的搜索，压缩搜索空间来实现高效的晁灿搜索。*
 
+17. **PC-RGNN: Point Cloud Completion and Graph Neural Network for 3D Object Detection(AAAI2021)**[论文链接](https://arxiv.org/abs/2012.10412): *提出一种proposal点云补全方法，来应对点云的不平衡性。同时提出一种新的图神经网络，来更好的对形状特性进行编码。*
 
+18. **CIA-SSD: Confident IoU-Aware Single-Stage Object Detector From Point Cloud(AAAI2021)**[论文链接](https://arxiv.org/abs/2012.03015):*为了解决单阶段检测器特征和目标框不对齐的问题，提出confidence rectification module。同时，利用类似FPN的结构来提取特征，增强网络的特征提取能力。最后，提出Distance-Variant IoU-Weighted NMS，来得到更好的NMS效果。*
 
+19. **CPCGAN: A Controllable 3D Point Cloud Generative Adversarial Network with Semantic Label Generating(AAAI2021)**[论文链接](https://www.aaai.org/AAAI21Papers/AAAI-4341.YangX.pdf): *一个两阶段的点云补全网络，使用structure gan来生成点云的骨架，再用final gan来将点云密集补全。提出一种Controllable Generation method来控制点云的生成类别。截至阅读论文时，代码还没开源。*
 
+20. **SE-SSD: Self-Ensembling Single-Stage Object Detector From Point Cloud(CVPR2021)** [论文链接](http://openaccess.thecvf.com/content/CVPR2021/html/):*继承CIA-SSD的结构，但是提出了一种teacher-student训练的方法，来强化对数据集中hard sample的学习（大多就是远处的目标），将远近目标视为一个domain adaptation问题。在速度和精度上均有很大优势。*
+
+21. **Sytle-based Point Generator with Adversarial Rendering for Point Cloud Competion(CVPR2021)**[论文链接](https://openaccess.thecvf.com/content/CVPR2021/html/Xie_Style-Based_Point_Generator_With_Adversarial_Rendering_for_Point_Cloud_Completion_CVPR_2021_paper.html):*主要包含channel-attentive EdgeConv, Style-based Point Generator, and Adversarial Point Rendering，分别用于点云的特征提取、生成以及对抗。其通过部分点云的特征来作为生成点云的style-control code,思路值得学习。其通过多视角投影来增强生成点云的视觉质量的思路也比较新颖。*
+
+22. **BoW Pooling: A Plug-and-Play Unit for Feature Aggregation of Point Clouds(AAAI2021)**[论文链接](https://www.aaai.org/AAAI21Papers/AAAI-1163.ZhangX.pdf)：*结合memory和bag of words的思想，通过学习更新memory来更新words，并使用bag of words思想来生成对于点云的特征表示。*
+
+23. **Semantic Consistency Networks for 3D Object Detection(AAAI2021)**：[论文链接](https://www.aaai.org/AAAI21Papers/AAAI-4979.WeiW.pdf): *作者认为目标检测中目标框内的语义分割结果应该和目标框本身的语义属性一致，也就是Semantic Consistency。故通过引入一个语义分割分支，以及对应的Semantic Consistency Loss，使得检测性能有所提升。*
+
+24. **PointConv: Deep Convolutional Networks on 3D Point Clouds(CVPR2019)**[论文链接](https://openaccess.thecvf.com/content_CVPR_2019/html/Wu_PointConv_Deep_Convolutional_Networks_on_3D_Point_Clouds_CVPR_2019_paper.html): *从连续卷积的数学原理出发，对于点云这种非结构化数据，提出一种真正意义上的点云卷积。同时，对于推导运算结果进行了理论上可以证明的简化，加快了网络运行速度。* 
 
 # Review
 
-1. **Point-cloud based 3D object detection and classification methods for self-driving applications: A survey and taxonomy**[论文链接](https://www.sciencedirect.com/science/article/pii/S1566253520304097): *综述，基于点云的自动驾驶3D目标检测和分类方法。*
-
+1. **Point-cloud based 3D object detection and classification methods for self-driving applications: A survey and taxonomy**[论文链接](https://www.sciencedirect.com/science/article/pii/S1566253520304097): *综述，基于点云的自动驾驶3D目标检测和分类方法。*   
 2. **Automotive LiDAR Technology: A Survey**[论文链接](https://ieeexplore.ieee.org/abstract/document/9455394/):*综述，介绍了激光雷达基本原理以及目前的几种技术路线，以及面临的挑战。*
 
 3. **Sensor and Sensor Fusion Technology in Autonomous Vehicles: A Review**[论文链接](https://www.mdpi.com/1424-8220/21/6/2140): *综述，介绍了自动驾驶场景下的若干传感器的原理，作用以及相关产品，主要包括摄像头、毫米波雷达以及激光雷达。*
