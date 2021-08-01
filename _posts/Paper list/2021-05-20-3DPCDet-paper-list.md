@@ -1,13 +1,13 @@
 ---
 layout: post
 title: '3D点云检测论文清单'
-date: 2021-06-29
+date: 2021-08-01
 author: Poley
 cover: '../assets/img/mycat3.jpg'
 tags: 论文清单
 ---
 
-**最后更新于2021/6/29，但是还有很多没整理的。**
+**最后更新于2021/8/1，但是还有很多没整理的。**
 # Attention
 
 1. **Attentional ShapeContextNet for Point Cloud Recognition(CVPR2018)** [论文链接](http://openaccess.thecvf.com/content_cvpr_2018/html/Xie_Attentional_ShapeContextNet_for_CVPR_2018_paper.html) :  *将Shapecontext的思想引入深度学习。为了进一步简化，利用深度学习的能力，将注意力（transformer）引入，完成selection and aggregation的功能。*
@@ -44,9 +44,12 @@ tags: 论文清单
 
 13. **HVPR: Hybrid Voxel-Point Representation for Single-stage 3D Object Detection(CVPR2021)**[论文链接](https://arxiv.org/abs/2104.00902)： *为了结合体素方法的速度优势和点方法的精度优势，在训练时使用两种特征融合，而在推断时，使用一个点特征memory来代替实际的点特征提取，在保证精度的同时提高了速度。同时，在提取特征时加入了空间注意力。*
 
-14. **Pillar-based Object Detection for Autonomous Driving(ECCV2020)**[论文链接](https://arxiv.org/abs/2007.10323v2):
-15. **An LSTM Approach to Temporal 3D Object Detection in LiDAR Point Clouds(ECCV2020)**[论文链接](https://arxiv.org/abs/2007.12392):
-16. **Improving 3D Object Detection through Progressive Population Based Augmentation(ECCV2020)**[论文链接](https://arxiv.org/abs/2004.00831):
+14. **Pillar-based Object Detection for Autonomous Driving(ECCV2020)**[论文链接](https://arxiv.org/abs/2007.10323v2): *提出一种anchor-free的方法，对每个pillar进行一次预测，而不是每个anchor。同时，本方法融合了MVF和PointPillar方法，将cyclinder view和BEV view结合，形成融合特征，再通过PointPillar预测。由于特征融合需要有一个pillar to points的过程，作者使用双线性插值代替常用的最近邻插值。*
+    
+15. **An LSTM Approach to Temporal 3D Object Detection in LiDAR Point Clouds(ECCV2020)**[论文链接](https://arxiv.org/abs/2007.12392):* 将LSTM引入3D目标检测，应用到自动驾驶场景下的连续帧检测中。检测融合了3帧的数据，获得了更大的点云范围。并将3D系数卷积融入LSTM，提出3D Sparse Conv LSTM。*
+    
+16. **Improving 3D Object Detection through Progressive Population Based Augmentation(ECCV2020)**[论文链接](https://arxiv.org/abs/2004.00831): *将3D目标检测中的超参数设置视为一个hyperparameter schedule learning的问题，通过 Progressive Population Based Search来局部的搜索，压缩搜索空间来实现高效的晁灿搜索。*
+
 
 
 
@@ -54,6 +57,10 @@ tags: 论文清单
 # Review
 
 1. **Point-cloud based 3D object detection and classification methods for self-driving applications: A survey and taxonomy**[论文链接](https://www.sciencedirect.com/science/article/pii/S1566253520304097): *综述，基于点云的自动驾驶3D目标检测和分类方法。*
+
+2. **Automotive LiDAR Technology: A Survey**[论文链接](https://ieeexplore.ieee.org/abstract/document/9455394/):*综述，介绍了激光雷达基本原理以及目前的几种技术路线，以及面临的挑战。*
+
+3. **Sensor and Sensor Fusion Technology in Autonomous Vehicles: A Review**[论文链接](https://www.mdpi.com/1424-8220/21/6/2140): *综述，介绍了自动驾驶场景下的若干传感器的原理，作用以及相关产品，主要包括摄像头、毫米波雷达以及激光雷达。*
 
 # Dataset
 

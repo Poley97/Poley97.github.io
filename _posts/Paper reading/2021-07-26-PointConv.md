@@ -91,3 +91,23 @@ are often biased samples because many sensors have difficulties measuring points
 # Experiments
 
 ![](/assets/img/20210726/PointConvT1.png)
+
+
+# Code
+
+源码里的密度估计就是直接使用一个点计算其到其他所有点的距离，认为其为一个高斯分布，算其似然，然后去平均。这个值越大说明点附近的密度越大。
+
+在group的过程中，用group中点密度倒数最大的值做归一化，之后作为特征输入。
+
+公式简化中，
+$$
+\begin{equation}
+\begin{aligned}
+\mathbf{F}_{\text {out }} &=\sum_{k=0}^{K-1} \sum_{c_{i n}=0}^{C_{i n}-1}\left(\widetilde{\mathbf{F}}_{\mathbf{i n}}\left(k, c_{i n}\right) \sum_{c_{m i d}=0}^{C_{\operatorname{mid}}-1}\left(\mathbf{M}\left(k, c_{m i d}\right) \mathbf{H}\left(c_{m i d}, c_{i n}\right)\right)\right) \\
+&=\sum_{c_{i n}=0}^{C_{i n}-1} \sum_{c_{m i d}=0}^{C_{m i d}-1}\left(\mathbf{H}\left(c_{m i d}, c_{i n}\right) \sum_{k=0}^{K-1}\left(\widetilde{\mathbf{F}}_{\mathbf{i n}}\left(k, c_{i n}\right) \mathbf{M}\left(k, c_{m i d}\right)\right)\right) \\
+&=\operatorname{Conv}_{1 \times 1}\left(\mathbf{H}, \widetilde{\mathbf{F}}_{\mathbf{i n}}^{T} \mathbf{M}\right)
+\end{aligned}
+\end{equation}
+$$
+
+相当于用FM矩阵中的每一个元素对对应的H(cmid,cin)向量进行加权，并最终求和，本质上就相当于一个全连接层，也就是一个conv1*1。代码中也是这么实现的。
