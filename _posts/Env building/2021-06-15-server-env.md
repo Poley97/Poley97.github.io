@@ -57,6 +57,10 @@ conda源
 修改conda超时阈值
 > https://blog.csdn.net/Arthur_Holmes/article/details/105095088
 
+pip换源
+
+> https://mirrors.tuna.tsinghua.edu.cn/help/pypi/
+
 ```
 conda config --set remote_connect_timeout_secs 40
 conda config --set remote_read_timeout_secs 100
@@ -92,6 +96,18 @@ sudo ubuntu-drivers autoinstall
 > https://blog.csdn.net/chch2010523/article/details/107929168
 注：安装cuda11不用降级gcc。
 
+# torch安装
+
+个人用torch 1.8
+
+```
+ conda install pytorch=1.8 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia
+
+```
+
+# 配置多CUDA版本
+
+> https://blog.csdn.net/Maple2014/article/details/78574275
 
 
 

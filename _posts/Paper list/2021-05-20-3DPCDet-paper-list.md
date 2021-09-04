@@ -84,3 +84,5 @@ tags: 论文清单
 1. **Attentional ShapeContextNet for Point Cloud Recognition(CVPR2018)**[论文链接](http://openaccess.thecvf.com/content_cvpr_2018/html/Xie_Attentional_ShapeContextNet_for_CVPR_2018_paper.html): *参考了传统的Shape Context Kernel，由传统的网格划分变为直接由DL计算点和Bins的亲和度，从而构建类似于Shape Context Kernel的特征。后续由进一步引入self-attention提升了性能。*
 
 2. **A Closer Look at Local Aggregation Operators in Point Cloud Analysis(ECCV2020)**[论文链接](https://www.ecva.net/papers/eccv_2020/papers_ECCV/papers/123680324.pdf):*本文首先回顾了多重local aggregation operators，并且使用相同的深度残差结构来研究他们的性能。并提出了**Position Pooling(PosPool)**,相比现有的复杂方法具有类似甚至更好的性能。*
+
+3. **PAConv: Position Adaptive Convolution with Dynamic Kernel Assembling on Point Clouds(CVPR2021)**[论文链接](https://openaccess.thecvf.com/content/CVPR2021/html/Xu_PAConv_Position_Adaptive_Convolution_With_Dynamic_Kernel_Assembling_on_Point_CVPR_2021_paper.html):*提出一种利用Weight Bank对点进行直接卷积的方法，通过Weight Bank中的多重权重以及自适应选择，来对于点之间的不同相对位置关系（不同的ralationship），来选择其最适合的权重。计算复杂度低，同时也可以更灵活的捕捉点之间的信息。*

@@ -7,6 +7,7 @@ cover: '/assets/img/20210726/PointConv.png'
 tags: 论文阅读
 ---
 
+> 论文链接 ：
 给出了一种真正意义上的点卷积，从连续卷积的原理出发，使用MLP学习权重，以及kernel density setimation来估计密度函数来实现。可以实现对3D空间内的任意点进行translation-invariant和permutation-invariant卷积。
 
 # Introduction
