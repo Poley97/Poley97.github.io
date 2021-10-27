@@ -1,0 +1,62 @@
+I"<p>提出一种mean teacher方法，通过对模型权重而不是预测标签来进行平均来训练模型。</p>
+
+<p>在深度学习中，手动对训练数据添加高质量的标签往往是高成本的，因此使用正则化方法来利用未标注数据来有效的减小模型的过拟合问题在半监督学习中是非常必要的。</p>
+
+<p>下图是对于一个二分类问题图示，展示了添加噪声以及未标注数据对于训练的影响。
+<img src="/assets/img/20210817/MTF1.png" alt="" /></p>
+
+<p>通过添加噪声，可以使得决策边界尽可能的原理标注数据点，如(b)所示。由于未标注数据没有标签，所以一些方法提出通过对有噪声和没有噪声的数据预测，并使用cosistency loss来建立两者之间的联系。这里，一个模型同时担任了teacher和students的作用。由于产生的标签并不准确，对他们赋予太多的权重可能会阻止模型学习到新的知识。也就是受困于<strong>confirmation bias</strong>，解决这个困境的方法就是提供更高质量的targets。</p>
+
+<p>有两种方法可以提高target的质量。一种是谨慎的选择添加的噪声，而不是仅仅简单的使用加性或者乘性噪声。另一种方法就是谨慎的选择teacher模型，而不是直接复制student模型。</p>
+
+<p>这两种方法是互补的，第一种方法的代表是<strong>Virtual Adaversarial Training</strong>，该方法具有很好的性能，但不在本文的讨论范围之内。</p>
+
+<p>本文的目标是建立一个更好的teacher模型，而不需要额外的训练。考虑到softmax输出一般不能提供训练数据之外的准确的预测，这里可以通过在预测的时候加入噪声来环节这一点，也就是一个noisy teacher可以得到更准确的targets。</p>
+
+<p>$\Pi$模型通过对预测值做EMA来实现上述目标。但是其具有较高的时空复杂度，不适合在线训练。</p>
+
+<p>为了解决这个问题，本文提出对权重进行EMA，如下所示。</p>
+
+<p><img src="/assets/img/20210817/MTF2.png" alt="" /></p>
+
+<p>本模型的优点在于：</p>
+<ul>
+  <li>teacher和student之间的准确标签反馈更快</li>
+  <li>实现在线训练</li>
+</ul>
+
+<p>consistency cost J</p>
+
+\[\begin{equation}
+J(\theta)=\mathbb{E}_{x, \eta^{\prime}, \eta}\left[\left\|f\left(x, \theta^{\prime}, \eta^{\prime}\right)-f(x, \theta, \eta)\right\|^{2}\right]
+\end{equation}\]
+
+<p>参数更新</p>
+
+\[\begin{equation}
+\theta_{t}^{\prime}=\alpha \theta_{t-1}^{\prime}+(1-\alpha) \theta_{t}
+\end{equation}\]
+
+<h2 id="分析">分析</h2>
+
+<h3 id="训练曲线">训练曲线</h3>
+
+<p>实验结果表明，EMA加权的模型可以给出更准确的预测，相比单纯的student models。</p>
+
+<p>同时，使用EMA加权的模型也提升了半监督训练的效果。体现出一个虚拟的反馈循环，即teacher通过consistency cost来提升students的性能，而students通过EMA来提升 teacher的性能。</p>
+<h3 id="结论">结论</h3>
+<ol>
+  <li>
+    <p>噪声仍然是必须的（数据增强下可以不用噪声）</p>
+  </li>
+  <li>
+    <p>对于EMA decay和consistency weight是敏感的。在训练初期可以使用较小的decay，让模型快速忘记之前的知识（0.99），而之后换成大的decay（0.999）</p>
+  </li>
+  <li>
+    <p>classification和consistency还不能完全decoupling。同时使用两者的输出可能有更好的结果。（可能理解不正确，之后再进一步理解一下）</p>
+  </li>
+  <li>
+    <p>使用KL散度损失的效果不如MSE。</p>
+  </li>
+</ol>
+:ET

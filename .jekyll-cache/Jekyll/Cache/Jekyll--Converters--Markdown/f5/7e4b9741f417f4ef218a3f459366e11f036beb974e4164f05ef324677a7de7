@@ -1,0 +1,72 @@
+I"�<blockquote>
+  <p>论文链接:  https://arxiv.org/abs/2004.08955
+参考博客： https://www.cnblogs.com/xiximayou/p/12728644.html</p>
+</blockquote>
+
+<p>ResNeSt在图像分类上中ImageNet数据集上超越了其前辈ResNet、ResNeXt、SENet以及EfficientNet。使用ResNeSt-50为基本骨架的Faster-RCNN比使用ResNet-50的mAP要高出3.08%。使用ResNeSt-50为基本骨架的DeeplabV3比使用ResNet-50的mIOU要高出3.02%。涨点效果非常明显。</p>
+
+<p><img src="/assets/img/20210803/ResNeStF1.png" alt="" /></p>
+
+<p>第一个贡献点：提出了split-attention blocks构造的ResNeSt，与现有的ResNet变体相比，不需要增加额外的计算量。而且ResNeSt可以作为其它任务的骨架。</p>
+
+<p>第二个贡献点：图像分类和迁移学习应用的大规模基准。 利用ResNeSt主干的模型能够在几个任务上达到最先进的性能，即：图像分类，对象检测，实例分割和语义分割。 与通过神经架构搜索生成的最新CNN模型[55]相比，所提出的ResNeSt性能优于所有现有ResNet变体，并且具有相同的计算效率，甚至可以实现更好的速度精度折衷。单个Cascade-RCNN [3]使用ResNeSt-101主干的模型在MS-COCO实例分割上实现了48.3％的box mAP和41.56％的mask mAP。 单个DeepLabV3 [7]模型同样使用ResNeSt-101主干，在ADE20K场景分析验证集上的mIoU达到46.9％，比以前的最佳结果高出1％mIoU以上。</p>
+
+<p><img src="/assets/img/20210803/ResNeStF2.png" alt="" /></p>
+
+<p>其结构如上图所示，主要借鉴了ResNeXt的 cardinal 的思想，将输入分为K组。然后又将每个 cardinal分为R组，故一共有$G=KR$组。</p>
+
+<p>每个Split Attention的结构如下
+<img src="/assets/img/20210803/ResNeStF3.png" alt="" /></p>
+
+<p>其借鉴了SE-NET的通道注意力结构，对通道赋予不同的权重以建模通道的重要程度。SE block的基础块如下所示</p>
+
+<p><img src="/assets/img/20210803/ResNeStAF1.png" alt="" /></p>
+
+<p>同样也借鉴了SK-NET的选择核模块，如下所示</p>
+
+<p><img src="/assets/img/20210803/ResNeStAF2.png" alt="" /></p>
+
+<p>对于每个Cardinal，输入是</p>
+
+\[\begin{equation}
+\begin{aligned}
+&amp;\text { dinal group is } \hat{U}^{k}=\sum_{i=R(k-1)+1}^{R k} U_{i} . \hat{U}^{k} \in\\
+&amp;\mathbb{R}^{H \times W \times C / K} \text { for } k \in 1,2, \ldots K . \text { Global contex- }
+\end{aligned}
+\end{equation}\]
+
+<p>通道权重统计量通过全局池化层得到，如下</p>
+
+\[\begin{equation}
+s_{c}^{k}=\frac{1}{H \times W} \sum_{i=1}^{H} \sum_{j=1}^{W} \hat{U}_{c}^{k}(i, j)
+\end{equation}\]
+
+<p>携带了通道权重之后的输入表示为$V^{k} \in \mathbb{R}^{H \times W \times C / K}$</p>
+
+<p>则每个cardinal的输出为</p>
+
+\[\begin{equation}
+V_{c}^{k}=\sum_{i=1}^{R} a_{i}^{k}(c) U_{R(k-1)+r}
+\end{equation}\]
+
+<p>这个加权通过上述的全局池化层输出经过r-softmax得到，即根据R决定的softmax，如下</p>
+
+\[\begin{equation}
+a_{i}^{k}(c)= \begin{cases}\frac{\exp \left(\mathcal{G}_{i}^{c}\left(s^{k}\right)\right)}{\sum_{j=0}^{R} \exp \left(\mathcal{G}_{j}^{c}\left(s^{k}\right)\right)} &amp; \text { if } R&gt;1 \\ \frac{1}{1+\exp \left(-\mathcal{G}_{i}^{c}\left(s^{k}\right)\right)} &amp; \text { if } R=1\end{cases}
+\end{equation}\]
+
+<p>最后concat起来得到最终的输出，并辅以Resnet的残差链接得到Block的输出。</p>
+
+<p>同时，作者对残差网络的一些超参数和网络结构做了小的修改。</p>
+
+<p>作者列出了使用的增强策略，包括</p>
+
+<ul>
+  <li>大的minibatch使用cosine学习率衰减，warm up ，BN层参数设置</li>
+  <li>标签平滑</li>
+  <li>自动增强</li>
+  <li>Mixup</li>
+  <li>大的切割设置</li>
+  <li>正则化</li>
+</ul>
+:ET

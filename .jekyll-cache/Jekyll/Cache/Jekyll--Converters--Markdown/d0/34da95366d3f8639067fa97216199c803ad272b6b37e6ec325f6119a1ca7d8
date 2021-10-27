@@ -1,0 +1,135 @@
+I"<h1 id="introduction">Introduction</h1>
+
+<p>本文主要提出的Stochastic Weight Averaging(SWA)方法，是一种比较常用的提升网络性能的trick。相当于一种对Geometric Ensembling(FGE)的近似.</p>
+
+<p>本文发现等权重的平均SGD轨迹上的点（高常数学习率或者cyclical学习率），即SWA，会产生很好的性能，并且可以引导得到对于损失平面几何的更好理解。一般来说，SWA可以获得更好的泛化性能。</p>
+
+<p><img src="/assets/img/20210726/AWF1.png" alt="" /></p>
+
+<p>主要结论</p>
+
+<ul>
+  <li>
+    <p>发现SGD with cyclical and constant learning rates 会遍历权重空间中对应高性能网络的那部分。这些模型都会moving around this optimal set，但是永远不会抵达其中心。因此作者表明可以通过平均来将权重移到 more desirable space。</p>
+  </li>
+  <li>
+    <p>FGE虽然可以作为一个模型同时训练，但是测试时为了ensemble k models 需要k倍的计算量。SWA可以视为FGE的近似，但是测试时间更短，更便捷，更可以解释。</p>
+  </li>
+  <li>
+    <p>发现SWA的解相比SGD更平摊。</p>
+  </li>
+  <li>
+    <p>发现损失函数在链接SWA解和SGD解的方向上并不对称。</p>
+  </li>
+  <li>
+    <p>SWA在多个训练集上都可以获得notable improvement。</p>
+  </li>
+  <li>
+    <p>同时SWA一般在训练集上的Loss都略高于SGD解，说明SWA得到的并不是一个局部最优。</p>
+  </li>
+</ul>
+
+<h1 id="related-work">Related work</h1>
+
+<p>相关工作表明，<strong>在几个简单的假设条件下，使用constant learning rate的SGD等效于在最小Loss点为中心的高斯分布上均匀的采样，这个高斯分布的方差由学习率来控制。</strong></p>
+
+<h1 id="stochasitic-weight-averaging">Stochasitic weight averaging</h1>
+
+<p>本方法被命名为SWA有两层含义：</p>
+<ul>
+  <li>其是SGD权重的平均</li>
+  <li>SGD权重相当于在DNN的loss serface上均匀采样，也就是随机权重</li>
+</ul>
+
+<h2 id="analysis-of-sgd-trajectories">Analysis of SGD Trajectories</h2>
+
+<p>作者这里使用了两种学习率策略</p>
+
+<p>Cyclical
+\(\begin{equation}
+\begin{aligned}
+\alpha(i) &amp;=(1-t(i)) \alpha_{1}+t(i) \alpha_{2} \\
+t(i) &amp;=\frac{1}{c}(\bmod (i-1, c)+1)
+\end{aligned}
+\end{equation}\)
+<img src="/assets/img/20210726/AWF2.png" alt="" /></p>
+
+<p>Constant
+\(\alpha(i)=\alpha_1\)</p>
+
+<p>分别选取每条轨迹上的三个点，first,middle and last，并在权重空间中定义一个2d平面来包含其所有的组合。并将这个平面上的loss以及error绘制了出来，并将轨迹上的其他点在这个平面上的<strong>投影</strong>绘制了出来。注意由于这些轨迹点都不在这个平面上，因此他们的Loss在图中是没有意义的。</p>
+
+<p><img src="/assets/img/20210726/AWF3.png" alt="" /></p>
+
+<p>从上图可以看出，两种学习率策略的点都靠近高性能网络的边缘，说明两种方法都在对应DNN高性能的权重空间里做exploration。两者的区别是cyclical的结果好于fixed的SGD，因为cyclical具有更多的微调时间，但是SGD的轨迹一般更大，说明其可以更有效的exporing 权重空间，但是得到的结果差于cyclical。</p>
+
+<h2 id="swa-algorithm">SWA Algorithm</h2>
+
+<p>使用一个预训练模型，在此基础上用constant或者cyclical再训练。对于cyclical去学习率最小的若干个iter，而对constant取每个epoch结束时。<strong>之后直接平均所有取出的权重，来得到最后的模型权重</strong>。</p>
+
+<p><img src="/assets/img/20210726/AWA1.png" alt="" /></p>
+
+<p>如果网络中使用了batch normalization，则需要在得到权重之后再进行前向网络，来更新BN的参数。</p>
+
+<h2 id="computational-complexity">Computational complexity</h2>
+
+<p>因为要同时保存两套权重，但是其中一套不需要求导，所以实际上增加的内存消耗不大，大约10%。每层取了新的权重，需要对SWA权重做一次平均，如上表所示。但是这个操作在SGD的每一个iter里都有，所以基本没有额外的开销。</p>
+
+<h2 id="solution-width">Solution width</h2>
+
+<p>已经有研究表明，局部最优解的宽度和泛化性能有关，因为train loss和test error是相互之间存在一个shift的，因此更宽的局部最优解对于小的干扰会更加稳定。于是这里本文作者对于两个解的宽度进行了探究。</p>
+
+<p>首先使用权重空间中的随机方向进行实验，如下</p>
+
+\[\begin{equation}
+\begin{aligned}
+&amp;w_{\mathrm{SWA}}(t, d)=w_{\mathrm{SWA}}+t \cdot d \\
+&amp;w_{\mathrm{SGD}}(t, d)=w_{\mathrm{SGD}}+t \cdot d
+\end{aligned}
+\end{equation}\]
+
+<p><img src="/assets/img/20210726/AWF4.png" alt="" /></p>
+
+<p>可以看到，沿着权重沿着随机方向前进，SWA在test error 和 train loss的上升都比SGD更缓慢，说明SWA是一个更宽的解。</p>
+
+<p>上述实验是沿着随机方向的，之后作者还沿着两个解连线的方向做了研究，表达如下</p>
+
+\[\begin{equation}
+w(t)=t \cdot w_{\mathrm{SGD}}+(1-t) \cdot w_{\mathrm{SWA}}
+\end{equation}\]
+
+<p><img src="/assets/img/20210726/AWF5.png" alt="" /></p>
+
+<p>从上图中不难看出，<strong>SWA实际上并没有跳出SGD得到的局部最优的区域，但是SWA选择了一个更宽的区域，这也是SWA具有更好泛化性的原因，而SGD的解可能更接近一个sharp ascent的边缘。</strong></p>
+
+<h2 id="connection-to-ensembling">Connection to ensembling</h2>
+
+<p>SWA的结果和FGE的结果输出差距很小，可以视作近似。这个输出包括置信度以及最终的相同label目标。</p>
+
+<p>从理论分析上来说，两者的差距也在二阶以上，如下
+\(\begin{equation}
+\bar{f}=\frac{1}{n} \sum_{i=1}^{n} f\left(w_{i}\right)
+\end{equation}\)</p>
+
+\[\begin{equation}
+f\left(w_{j}\right)=f\left(w_{\mathrm{SWA}}\right)+\left\langle\nabla f\left(w_{\mathrm{SWA}}\right), \Delta_{j}\right\rangle+O\left(\left\|\Delta_{j}\right\|^{2}\right)
+\end{equation}\]
+
+<p>\(\begin{equation}
+\begin{gathered}
+\bar{f}-f\left(w_{\mathrm{SWA}}\right)=\frac{1}{n} \sum_{i=1}\left(\left\langle\nabla f\left(w_{\mathrm{SWA}}\right), \Delta_{i}\right\rangle+O\left(\left\|\Delta_{i}\right\|^{2}\right)\right) \\
+=\left\langle\nabla f\left(w_{\mathrm{SWA}}\right), \frac{1}{n} \sum_{i=1}^{n} \Delta_{i}\right\rangle+O\left(\Delta^{2}\right)=O\left(\Delta^{2}\right),
+\end{gathered}
+\end{equation}\)
+其中，different perturbed networks的差距可以表示如下
+\(\begin{equation}
+f\left(w_{i}\right)-f\left(w_{j}\right)=\left\langle\nabla f\left(w_{\mathrm{SWA}}\right), \Delta_{i}-\Delta_{j}\right\rangle+O\left(\Delta^{2}\right)
+\end{equation}\)</p>
+
+<h2 id="connection-to-convex-minimization">Connection to convex minimization</h2>
+<p>略</p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210726/AWT1.png" alt="" /></p>
+:ET

@@ -1,0 +1,89 @@
+I"<blockquote>
+  <p>参考博客 ：https://0809zheng.github.io/2020/09/16/eccv-tutorial.html</p>
+</blockquote>
+
+<p>来自于 ECCV 2020 Tutorial on PyTorch Performance Tuning Guide.</p>
+
+<h1 id="use-asynv-data-loading--augmentation">Use asynv data loading / augmentation</h1>
+
+<p>使用异步数据加载和增强，即<strong>num_workers=0, pin_memory=False</strong>。</p>
+
+<ul>
+  <li>
+    <p><strong>num_workers</strong>:当加载batch的时间小于模型的训练时间时，GPU每次训练完都可以直接从CPU中取到下一个batch的数据，无需额外的等待，因此也不需要多余的worker，即使增加worker也不会影响训练速度；当加载batch的时间大于模型的训练时间时，GPU每次训练完都需要等待CPU完成数据的载入，若增加worker，即使worker_1还未就绪，GPU也可以取worker_2的数据来训练。即<strong>异步加载</strong>。</p>
+  </li>
+  <li>
+    <p><strong>pin_memory</strong>:设置<strong>锁页内存</strong>，即放在内存中永远不会和主机虚拟内存发生交换的内存内存。在内存和显存交换的过程中会有更快的速度。GPU显存中全部都是<strong>锁页内存</strong>。</p>
+  </li>
+</ul>
+
+<p>下表是训练MNIST图像分类实验中不同参数的对照试验（环境PyTorch 1.6 + NVIDIA Quadro RTX 8000）</p>
+
+<p><img src="/assets/img/20210902/TorchaccF1.png" alt="" /></p>
+
+<h1 id="enable-cudnn-autotuner">enable cuDNN autotuner</h1>
+<ul>
+  <li>允许cuDNN进行调校
+在训练卷积神经网络时，cuDNN支持多种不同的算法计算卷积，使用调校工具autotuner可以运行一个较小的benchmark检测这些算法，并从中选择表现最好的算法。</li>
+</ul>
+
+<p>对于卷积神经网络，只需要设置：</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>torch.backends.cudnn.benchmark = True
+</code></pre></div></div>
+
+<p>下表是使用nn.Conv2d(64,3)处理大小为(32,64,64,64)数据的对照试验（环境PyTorch 1.6 + NVIDIA Quadro RTX 8000）</p>
+
+<p><img src="/assets/img/20210902/TorchaccF2.png" alt="" /></p>
+
+<h1 id="increase-batch-size">Increase batch size</h1>
+
+<ul>
+  <li>增加批量大小</li>
+  <li>学习率衰减，warmup，权重衰减</li>
+  <li>换用大batch的优化方法:LARS,LAMB,NVLAMB,NovoGrad</li>
+</ul>
+
+<h1 id="remove-unnecessary-computation">Remove unnecessary computation</h1>
+<p>比如去除batchnorm之前层的bias
+<img src="/assets/img/20210902/TorchaccF3.png" alt="" /></p>
+
+<h1 id="use-distributeddataparallel-instead-of-dataparallel">Use DistributedDataParallel instead of DataParallel</h1>
+
+<p>区别，使用的CPU进程数不同，如下
+<img src="/assets/img/20210902/TorchaccF4.png" alt="" /></p>
+
+<h1 id="efficiently-zero-out-gradinets">Efficiently zero-out gradinets</h1>
+
+<p>梯度置零一般使用如下语句</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>model.zero_grad() or optimizer.zero_grad()
+</code></pre></div></div>
+
+<p>上述对每一个参数执行memset操作（为新申请内存做初始化工作），反向传播时用’$+=$’，即读+写。为了提高效率，可以变为</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>for param in model.parameters():
+    param.grad = None
+</code></pre></div></div>
+
+<p>上述不会执行memset，反向传播用’$=$’（写）</p>
+
+<h1 id="apply-pytorch-jit-to-fuse-pointwise-operations">Apply PyTorch JIT to fuse pointwise operations</h1>
+
+<ul>
+  <li>使用PyTorch JIT融合逐点操作
+PyTorch JIT能够将逐点操作（pointwise operations）融合到单个CUDA核上，从而减小执行时间。</li>
+</ul>
+
+<p>如下图，只需要在执行语句前加上@torch.jit.script便可以实现（环境PyTorch 1.6 + NVIDIA Quadro RTX 8000）：</p>
+
+<p><img src="/assets/img/20210902/TorchaccF5.png" alt="" /></p>
+<h1 id="checkpoint-to-recompute-intermediates">Checkpoint to recompute intermediates</h1>
+<ul>
+  <li>使用checkpoint重新计算中间值
+在常规的训练过程中，前向传播会存储中间运算的输出值用以反向传播，这一步需要更多的内存，从而限制了训练时batch size的大小；在反向传播更新参数时不再需要额外的运算。</li>
+</ul>
+
+<p>torch.utils.checkpoint提供了checkpoint操作。在前向传播只存储部分中间运算的输出值，减小了对内存的占用，可以使用更大的batch size；反向传播时需要额外的运算。</p>
+
+<p>checkpoint操作是一种用时间换内存的操作。通常需要选择对合适的操作进行，如较小的重复计算代价（re-computation cost）和较大的内存占用（memory footprint），包括激活函数、上下采样和较小堆积深度（accumulation depth）的矩阵向量运算。</p>
+:ET

@@ -1,0 +1,21 @@
+I"�<p>Transforms 已经在NLP里应用广泛，但是由于其$O(n^2)$的复杂度，并不适合直接应用于图像中的像素。本文将图像切割成patchs，并且提供线性的embeddings对这些patch，当作Transforms的输入。也就是将Image patchs当作NLP应用中的token来处理。</p>
+
+<p>目前已经有一些方法将Transformer应用在CV上，但是当他们在中等大小的数据及上训练而不使用强力的正则时，结果同大小的ResNet差几个点。这种令人沮丧的结果是似乎是可以预知的，因为Transformers缺乏像卷积网络一样的归纳偏置的能力，<strong>such as translation equivariance and locality</strong>。</p>
+
+<p>但作者发现，大规模的训练胜过归纳偏置。ViT在超大数据集上训练达到了SOAT。</p>
+
+<p>ViT模型总体结构如下所示</p>
+
+<p><img src="/assets/img/20210826/ViTF1.png" alt="" /></p>
+
+<p>其输血型是可以表示如下，其中MSA可以包含多层注意力层</p>
+
+\[\begin{equation}
+\begin{aligned}
+\mathbf{z}_{0} &amp;=\left[\mathbf{x}_{\text {class }} ; \mathbf{x}_{p}^{1} \mathbf{E} ; \mathbf{x}_{p}^{2} \mathbf{E} ; \cdots ; \mathbf{x}_{p}^{N} \mathbf{E}\right]+\mathbf{E}_{\text {pos }}, &amp; \mathbf{E} \in \mathbb{R}^{\left(P^{2} \cdot C\right) \times D}, \mathbf{E}_{p o s} \in \mathbb{R}^{(N+1) \times D} \\
+\mathbf{z}^{\prime} &amp;=\operatorname{MSA}\left(\operatorname{LN}\left(\mathbf{z}_{\ell-1}\right)\right)+\mathbf{z}_{\ell-1}, &amp; \ell=1 \ldots L \\
+\mathbf{z}_{\ell} &amp;=\operatorname{MLP}\left(\operatorname{LN}\left(\mathbf{z}^{\prime}{ }_{\ell}\right)\right)+\mathbf{z}^{\prime} \ell, &amp; \ell=1 \ldots L \\
+\mathbf{y} &amp;=\operatorname{LN}\left(\mathbf{z}_{L}^{0}\right) &amp;
+\end{aligned}
+\end{equation}\]
+:ET

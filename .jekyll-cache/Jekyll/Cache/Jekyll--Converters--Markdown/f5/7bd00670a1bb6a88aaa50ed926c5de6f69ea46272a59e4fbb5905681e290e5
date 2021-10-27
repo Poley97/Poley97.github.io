@@ -1,0 +1,86 @@
+I"�<blockquote>
+  <p>论文链接：https://arxiv.org/abs/2012.03015</p>
+</blockquote>
+
+<p>如今的点云的单阶段检测器通常将目标定位和分类问题视作独立的tasks，导致定位精度和分类置信度并不是很好的align。为了解决这个问题本文提出了<strong>Confident IoU-Aware Single-Stage Object Detector(CIA-SSD)</strong></p>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>分类置信度和目标框质量的unalign问题在之前就被提出过。两阶段检测器通过提取proposal的特征，并且预测IOU的方式来对confidence predictions做refine。在hard-category类别标签中，这种soft IoU通常可以更好的和目标框的定位质量对应起来。</p>
+
+<p>但是但剪短检测器不能通过预测的Bounding box特征来做refine。他们的特征主要通过预定义的anchor或者分类的前景点来学习，所以导致IoU的预测并不像两阶段那么准确，也就不能有效的rectify confience predicetions。</p>
+
+<p>SASSD是一个单阶段检测器，通过插值等方法来获得修正的confidence，但是坐着觉得那个比较复杂，需要插值。本文设计了一种新的<strong>confidence rectification module</strong>，来更聪明的解决这个问题。主要思想是基于</p>
+
+<p><strong>Our key idea is based on the finding that anchor-feature-based IoU predictions are discriminative especially between the precise and imprecise regressions of the bounding boxes.(暂时没有看懂)</strong></p>
+
+<p>同时，设计了<strong>Spatial-Semantic Feature Aggregation Modelu</strong>来自适应的融合搞基的语义特征和低级的空间特征，达到了性能的提升。</p>
+
+<p>同时，坐着注意到对于远距离的目标，经常会出现很多false-positive 并且他们Box的回归具有strong oscillations（不稳定），因此提出了<strong>Distance-variant IoU-weighted NMS(DI-NMS)</strong>,来实现更平滑的回归以及减少冗余的预测，相比2D-NMS，考虑到了深度的信息。</p>
+
+<p><img src="/assets/img/20210712/CIA-SSDF2.png" alt="" /></p>
+
+<h1 id="confident-iou-aware-single-stage-detector">Confident IoU-Aware Single Stage Detector</h1>
+
+<p><img src="/assets/img/20210712/CIA-SSDF3.png" alt="" /></p>
+
+<h2 id="pointcloud-encoder">PointCloud Encoder</h2>
+
+<p>体素化，对体素内坐标和反射率平均。Backbone和SECOND的一样。</p>
+
+<h2 id="spatial-semantic-feature-aggregation">Spatial-Semantic Feature Aggregation</h2>
+
+<p>在特征提取上做了改进，传统的3D卷积常用 BEV feature extraction module。但是这样会不能有效提取丰富的空间信息。</p>
+
+<p>于是本文提出 spatial-semantic feature aggregation module，如上图所示包含两组卷积，以及attentional fusion module。两组卷积分别用于高分辨率的空间特征，以及低分辨率的语义特征。</p>
+
+<p>具体流程如上图所示。SSFA模块可以帮助提取更鲁棒的特征，同时包含了丰富的空间和语义信息，可以更准确的预测Bounding box和分类。</p>
+
+<h2 id="iou-aware-confidence-rectification">IoU-Aware Confidence Rectification</h2>
+<p>我们可以通过训练一个IOU预测网络来回归预测框和标注框之间的差距。但是由于单阶段检测器的特征和y预测框的misalign问题更加严重，所以IOU的预测并不像双阶段的那么准确。</p>
+
+<p><img src="/assets/img/20210712/CIA-SSDF4.png" alt="" /></p>
+
+<p>由上图可以看出，尽管网络对于IOU的估计并不准确，而且随着真实IOU的下降，网络估计的方差越来越大。但是可以看出，对于高IOU的部分，网络的估计相对更加准确。这就允许我们使用它来判断准确的和不准确的IOU。为了使得IOU预测更有判别性这里去了一个指数操作。</p>
+
+\[\begin{equation}
+g=i^{\beta}
+\end{equation}\]
+
+<p>则最后输出的confidence是IOU得分和类别得分的乘积，如下所示</p>
+
+\[\begin{equation}
+f=c \cdot g=c \cdot i^{\beta}
+\end{equation}\]
+
+<p>在训练的过程中，同时训练正常的回归分类head以及IoU head，但是将IoU的预测的计算图从Bounding box regression中断开。防止IoU预测的Loss反向传播到框回归中。</p>
+
+<h2 id="distance-variant-iou-weighted-nms">Distance-Variant IoU-Weighted NMS</h2>
+<p>远处的目标总是会被预测成低分类置信度，并且高回归不确定度，这是由于点的洗属性决定的。作者发现</p>
+<ul>
+  <li>回归框波动打</li>
+  <li>False-Positive多（指没有和任何GT有交集的框，而不只是IOU低）</li>
+</ul>
+
+<p>因此提出 distance-variant IoU weighted NMS(DI-NMS)如下</p>
+
+<p><img src="/assets/img/20210712/CIA-SSDA1.png" alt="" /></p>
+
+<ol>
+  <li>计算预测框和anchor的距离</li>
+  <li>根据距离反比计算一个得分S</li>
+  <li>寻找一个得分最高的S对应的框</li>
+  <li>找到和他靠近的框（iou大于阈值）</li>
+  <li>计算一个邻域总得分，用于后续决定是否输出这个邻域的结果</li>
+  <li>对邻域内的框做一个加权平均</li>
+  <li>根据总得分输出</li>
+  <li>返回3，循环直到所有预测框都被遍历过。</li>
+</ol>
+
+<p><img src="/assets/img/20210712/CIA-SSDF5.png" alt="" /></p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210712/CIA-SSDT1.png" alt="" /></p>
+
+:ET

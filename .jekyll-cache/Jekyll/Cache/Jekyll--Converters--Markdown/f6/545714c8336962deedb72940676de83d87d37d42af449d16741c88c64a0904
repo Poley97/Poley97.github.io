@@ -1,0 +1,43 @@
+I"�<p>本文提出 Detection Transformer(DERT),实现端到端的目标检测，同时无需想传统的目标检测方法一样，使用大量的人工设定的超参数以及前后处理方法。结果如下图嗾使，可以<strong>predicts all objects at once</strong>。
+<img src="/assets/img/20210830/DERTF1.png" alt="" /></p>
+
+<p>DERT的训练需要<strong>extra-long training schedule and benefits from auxiliary decodeing losses in the transformer</strong>。</p>
+
+<p>DERT预测固定个数的结果，在通过decoder的single pass中。一个最主要的困难是如何对预测目标进行评分（类别，位置，大小）。</p>
+
+<p>首先假设有$y$个真值目标，算法得到的输出数量$N$大于实际的目标数量。为了找到预测值和真值之间的二元匹配关系，我们需要寻找一个关于$N$个元素$\sigma \in \mathfrak{S}_{N}$使得匹配LOSS最小，如下
+\(\begin{equation}
+\hat{\sigma}=\underset{\sigma \in \mathfrak{S}_{N}}{\arg \min } \sum_{i}^{N} \mathcal{L}_{\operatorname{match}}\left(y_{i}, \hat{y}_{\sigma(i)}\right)
+\end{equation}\)</p>
+
+<p>这个最优的assignment是通过匈牙利算法高效获得的（其计算复杂度为$O(n^2)$）</p>
+
+<p>match loss的定义如下</p>
+
+\[\begin{equation}
+\mathcal{L}_{\operatorname{match}}\left(y_{i}, \hat{y}_{\sigma(i)}\right)=-\mathbb{1}_{\left\{c_{i} \neq \varnothing\right\}} \hat{p}_{\sigma(i)}\left(c_{i}\right)+\mathbb{1}_{\left\{c_{i} \neq \varnothing\right\}} \mathcal{L}_{\text {box }}\left(b_{i}, \hat{b}_{\sigma(i)}\right)
+\end{equation}\]
+
+<p>上述的配对过程实际上和传统目标检测启发式的assginments方法是类似的，但是不同是的，这里需要找到的是一对一的matching，而不是多对一的matching，以直接进行<strong>set prediction without duplicates</strong>,进而避免了后处理工作。</p>
+
+<p>而整体的loss(基于上述匹配的结果)称为$Hungarian\quad loss$，和传统的检测Loss非常相似，即<strong>负对数似然损失（分类）和box损失的线性组合</strong>
+\(\begin{equation}
+\mathcal{L}_{\text {Hungarian }}(y, \hat{y})=\sum_{i=1}^{N}\left[-\log \hat{p}_{\hat{\sigma}(i)}\left(c_{i}\right)+\mathbb{1}_{\left\{c_{i} \neq \varnothing\right\}} \mathcal{L}_{\text {box }}\left(b_{i}, \hat{b}_{\hat{\sigma}}(i)\right)\right]
+\end{equation}\)</p>
+
+<p>由于这里需要直接预测Box而不基于任何先验假设（比如anchor），因此需要一个<strong>scale-invariant</strong>的box loss，$l_1$损失很明显不满足这一点，因此使用的是<strong>IOU LOSS</strong>。</p>
+
+<p>DERT的完整结构如下图所示</p>
+
+<p><img src="/assets/img/20210830/DERTF2.png" alt="" /></p>
+
+<p>首先通过一个CNN来提取compact feature representation，再通过一个encoder-decoder transformer，并最后通过一个简单的前向网络预测。<strong>由于不需要繁琐的后处理，使用pytorch预测代码只需要50行，是一个较大的优势。</strong></p>
+
+<p>由于transformer需要序列输入，因此经过CNN的32倍下采样的feature map被展开成序列并进行输入。由于transformer本身是permutation-invariant的，因此可以通过加入位置编码的方法来辅助。</p>
+
+<p>解码通过object queries和encoder的特征一起解码，得到最后的输出特征，每个特征独立的经过FNN得到最终的输出。</p>
+
+<p>具体结构如下</p>
+
+<p><img src="/assets/img/20210830/DERTF10.png" alt="" /></p>
+:ET

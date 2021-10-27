@@ -1,0 +1,90 @@
+I"�<blockquote>
+  <p>论文链接： http://openaccess.thecvf.com/content_CVPR_2019/html/Zhu_Deformable_ConvNets_V2_More_Deformable_Better_Results_CVPR_2019_paper.html</p>
+</blockquote>
+
+<blockquote>
+  <p>参考博客：https://zhuanlan.zhihu.com/p/103070923</p>
+</blockquote>
+
+<p>DCNv1的出色性能来自于其对于目标几何变换的适应能力。但是其拓展的预期可能远超过感兴趣的区域，导致特征被不相关的图像内容所影响。因此改进了DCN，使得其具有更强的聚焦于恰当的图像区域的能力。这种能力的提升来自于一个更复杂的DCN和网络的结合，以及改进的机制，来拓展deformation modeling的scope。</p>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>DCN是在PASCAL VOC上进行测试的，其产线出的效果就是其采样点会有聚类到其所在的目标周围的趋势。但是这种向目标上的收敛是不主权呢得，经常会到感兴趣区域以外的地方。通过进一步的研究，将DCN放到更有挑战性的数据集COCO上，发现这种现象变得更为明显。这就显示了对于DCN潜在的改进可能。</p>
+
+<p>DCNv2主要从两个方面改进，一个是拓展其在主干网络中的应用，另一个则是引入一种调制机制，通过feature amplitude来调制。为了增加DCNv2模型的能力，本文同时使用一个teacher network来监督学习。使用一个R-CNN来作为teacher网络，来避免目标区域外无关信息的干扰，来对DCNv2网络做feature mimicking。</p>
+
+<h1 id="analysis-of-deformable-convnet-behavior">Analysis of Deformable ConvNet Behavior</h1>
+<h2 id="spatial-support-visualization">Spatial Support Visualization</h2>
+<p><strong>有效感受野（Effective receptive fields）</strong>：网络中每个节点都会计算feature map中的像素点，而每个像素点都有它自己的感受野。但是，不是感受野中的所有像素点对这个点的响应的贡献都是相同的，贡献大小与卷积核权重有关，因此文中用有效感受野来表示这种贡献的差异。</p>
+
+<p><strong>有效采样/bin位置（Effective sampling/bin locations）</strong>：对于卷积核的采样点和RoIpooling的bin的位置进行分析可以有助于理解DCN，有效位置在反应采样点位置的基础上还反应了每个位置的贡献。</p>
+
+<p><strong>错误边界显著性区域（Error-bounded saliency regions）</strong>：最近关于图像显著性的研究表明，对于网络的每个节点的响应，不是图像上所有的区域对其都有影响，去掉一些不重要的区域，节点的响应可以保持不变。根据这一性质，文章将每个节点的support region限制到了最小，可以和整幅图产生相同的响应的区域，并称之为错误边界显著性区域</p>
+
+<h2 id="spatial-suuport-of-deformable-convnets">Spatial Suuport of Deformable ConvNets</h2>
+
+<p>如下图所示。注意，当Deformable Faster R-CNN的offset学习率设置为0时，其就退化为标准的Faster R-CNN。</p>
+
+<p><img src="/assets/img/20210724/DCNv2F1a.png" alt="" /></p>
+
+<p><img src="/assets/img/20210724/DCNv2F1b.png" alt="" /></p>
+
+<p><img src="/assets/img/20210724/DCNv2F1c.png" alt="" /></p>
+
+<p>由上可以看出</p>
+<ul>
+  <li>传统的卷积可以适应一些内容的geometric variations。</li>
+  <li>通过引入DCN，网络对于geometric variations的适应能力显著增强了。对于前景上的节点，其support基本覆盖了整个目标。但是，还会有一些背景区域参与进来，也就是说，这个range of spatial support 并不是准确的。</li>
+  <li>Spatial support visualization比sampling locations的可视化更加准确。因为感受野里的点对最终的输出并不是等量贡献，因此只看感受野的采样点是不准确的。</li>
+</ul>
+
+<p><img src="/assets/img/20210724/DCNv2F2a.png" alt="" /></p>
+
+<p><img src="/assets/img/20210724/DCNv2F2b.png" alt="" /></p>
+
+<p><img src="/assets/img/20210724/DCNv2F2c.png" alt="" /></p>
+
+<p><img src="/assets/img/20210724/DCNv2F2d.png" alt="" /></p>
+
+<p><img src="/assets/img/20210724/DCNv2F2e.png" alt="" /></p>
+
+<p><img src="/assets/img/20210724/DCNv2F2.png" alt="" /></p>
+
+<p>上图是对2fc层中的节点做的可视化，使用roi pooling，在conv5。</p>
+
+<p>Effective bin locations表示在目标前景具有较大梯度的bins。可以看到DCN具有更多高响应的bins在目标前景上。但同时，两者的error-bounded saliency region都不是完全在前景目标上。而引入的ROI外的feature可能会影响预测的结果，这在最近的研究中也被证实。</p>
+
+<h1 id="more-deformable-convnets">More Deformable ConvNets</h1>
+
+<h2 id="stacking-more-deformable-conv-layers">Stacking More Deformable Conv Layers</h2>
+
+<p>使用更多的DCN代替普通的卷积。DCNv1中只是替换了conv5中的卷积，而DCNv2中替换了conv3,conv4和conv5的卷积。一共有12层DCN。在DCNv1论文中，使用过多的DCN在PASCAL VOC上显示了性能的饱和，但是在COCO上增加DCN数量具有显著的效果。</p>
+
+<h2 id="modulated-deformable-modules">Modulated Deformable Modules</h2>
+
+<p>对不同位置/bins的输入特征幅度进行调制。这样可以决定是否保留特定位置的信号，或者将其置零。这样可以允许网络更灵活自由的去调解spatial support regions。其实这相当于一个简化版（局部）的attention，简单又高效。</p>
+
+<p>Deformable convolution
+\(\begin{equation}
+y(p)=\sum_{k=1}^{K} w_{k} \cdot x\left(p+p_{k}+\Delta p_{k}\right) \cdot \Delta m_{k}
+\end{equation}\)</p>
+
+<p>Deformable RoIpooling
+\(\begin{equation}
+y(k)=\sum_{j=1}^{n_{k}} x\left(p_{k j}+\Delta p_{k}\right) \cdot \Delta m_{k} / n_{k}
+\end{equation}\)</p>
+
+<h2 id="r-cnn-feature-mimicking">R-CNN Feature Mimicking</h2>
+
+<p><img src="/assets/img/20210724/DCNv2F3.png" alt="" /></p>
+
+<p>使用RPN的结果从原图中CROP一块来提取特征，然后做feature mimicking。这其实就是用r-cnn做teacher。这样可以让teacher网络得到的特征尽可能的避免区域外的干扰。
+\(\begin{equation}
+L_{\text {mimic }}=\sum_{b \in \Omega}\left[1-\cos \left(f_{\text {RCNN }}(b), f_{\text {FRCNN }}(b)\right)\right]
+\end{equation}\)</p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210724/DCNv2T1.png" alt="" /></p>
+:ET

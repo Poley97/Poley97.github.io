@@ -1,0 +1,2 @@
+I"�<p>Transformer已经呗广泛的应用于NLP，并且在CV上也展现出了潜力。PCT的主要思想是利用Transformer内在的<strong>order invariance</strong>来避免对点云数据顺序定义的需要，并且通过attention机制来学习点云的特征。如下图所示，attention 权重的分布和 part semantics高度相关，并且并不随着空间距离的整张和减弱。</p>
+:ET

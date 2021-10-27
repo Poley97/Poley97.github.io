@@ -1,0 +1,97 @@
+I"j<blockquote>
+  <p>论文链接 ：
+给出了一种真正意义上的点卷积，从连续卷积的原理出发，使用MLP学习权重，以及kernel density setimation来估计密度函数来实现。可以实现对3D空间内的任意点进行translation-invariant和permutation-invariant卷积。</p>
+</blockquote>
+
+<h1 id="introduction">Introduction</h1>
+<p>本文提出的3D卷积方法可以用于3D空间中的非均匀采样点。作者发现卷积操作可以被视为连续卷积操作的离散近似，在3D空间，可以将卷积操作的权重当作关于局部3D坐标的（Lipschitz）连续函数来处理（相对于参考点）。这种连续函数可以使用MLP来近似。这个方法已经在之前被提出过，但是没有考虑到非均匀采样的问题。作者提出使用 inverse density scale 来对MLP学习到的连续函数进行re-weight，对应与对连续函数的蒙特卡洛近似。上述方法，称为PointConv。</p>
+
+<p>同时，本文也提出了对应的反卷积方法，可以用于分割等任务。</p>
+
+<h1 id="pointconv">PointConv</h1>
+
+<p>PointConv相当于是对3D连续卷积操作的蒙特卡洛近似的一个拓展。</p>
+
+<h2 id="convolution-on-3d-point-clouds">Convolution on 3D Point Clouds</h2>
+
+<p>一维卷积</p>
+
+<p>\(\begin{equation}
+(f * g)(\mathbf{x})=\iint_{\boldsymbol{\tau} \in \mathbb{R}^{d}} f(\boldsymbol{\tau}) g(\mathbf{x}+\boldsymbol{\tau}) d \boldsymbol{\tau}
+\end{equation}\)
+<img src="/assets/img/20210726/PointConvF1.png" alt="" />
+传统的2D卷积实际上是将上述做了2D离散化，但是点云并不会定位到fixed grid上，而是可以取任何的连续值，因此不能直接用传统的离散卷积。回到传统的3D连续卷积上，其公式如下
+\(\begin{equation}
+\begin{aligned}
+&amp;\operatorname{Conv}(W, F)_{x y z}= \\
+&amp;\iiint_{\left(\delta_{x}, \delta_{y}, \delta_{z}\right) \in G} W\left(\delta_{x}, \delta_{y}, \delta_{z}\right) F\left(x+\delta_{x}, y+\delta_{y}, z+\delta_{z}\right) d \delta_{x} \delta_{y} \delta_{z}
+\end{aligned}
+\end{equation}\)</p>
+
+<p>将其离散化，可以得到如下</p>
+
+\[\begin{equation}
+\begin{aligned}
+&amp;\operatorname{PointConv}(S, W, F)_{x y z}= \\
+&amp;\sum_{\left(\delta_{x}, \delta_{y}, \delta_{z}\right) \in G} S\left(\delta_{x}, \delta_{y}, \delta_{z}\right) W\left(\delta_{x}, \delta_{y}, \delta_{z}\right) F\left(x+\delta_{x}, y+\delta_{y}, z+\delta_{z}\right)
+\end{aligned}
+\end{equation}\]
+
+<p>其中S是反密度函数，因为点云并不是均匀采样的。如下图所示
+<img src="/assets/img/20210726/PointConvF2.png" alt="" /></p>
+
+<p>本文的主要思想是通过MLP，3D坐标和反密度函数来近似权重函数。MLP对所有点都是共享的，以此来维持permutation invariance。<strong>密度估计使用kernel density estimation(KDE)进行离线估计</strong>，之后通过MLP来做一个1D的非线性变换，其主要目的是为了让网络自适应的来决定是否使用当前的密度估计。</p>
+
+<p>因此可以得到如下的表达式</p>
+
+\[\begin{equation}
+\mathbf{F}_{\text {out }}=\sum_{k=1}^{K} \sum_{\text {in }=1}^{C_{i n}} S(k) \mathbf{W}\left(k, c_{\text {in }}\right) F_{\text {in }}\left(k, c_{\text {in }}\right)
+\end{equation}\]
+
+<p>上述的密度函数re-weight实际上是从蒙特卡洛重要性采样中得到</p>
+
+<p>$\int f(x) d x=\int \frac{f(x)}{p(x)} p(x) d x \approx \sum_{i} \frac{f\left(x_{i}\right)}{p\left(x_{i}\right)}$, for $x_{i} \sim p(x) .$ Point clouds
+are often biased samples because many sensors have difficulties measuring points near plane boundaries, hence needing this reweighting</p>
+
+<p>由上式可以得到PointConv的流程如下所示</p>
+
+<p><img src="/assets/img/20210726/PointConvF3.png" alt="" /></p>
+
+<p>上图只是对一个local提取特征，还需要通过一个herarchical的结构来对全部点云提取特征。在这点上直接使用了Pointnet++的结构。</p>
+
+<h2 id="feature-propagation-using-deconvolution">Feature Propagation Using Deconvolution</h2>
+
+<p>和PointNet++类似，先插值，再conv，如下所示。</p>
+
+<p><img src="/assets/img/20210726/PointConvF4.png" alt="" /></p>
+
+<h1 id="efficient-pointconv">Efficient PointConv</h1>
+<p>上述的方法对于消耗内存较多，效率不高。作者从理论上找到了一种等效的运算，实际应用中更加高效。</p>
+
+<p><img src="/assets/img/20210726/PointConvL1.png" alt="" /></p>
+
+<p>证明在原文中给出，这里省略了。其得到的流程图如下所示</p>
+
+<p><img src="/assets/img/20210726/PointConvF5.png" alt="" /></p>
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210726/PointConvT1.png" alt="" /></p>
+
+<h1 id="code">Code</h1>
+
+<p>源码里的密度估计就是直接使用一个点计算其到其他所有点的距离，认为其为一个高斯分布，算其似然，然后去平均。这个值越大说明点附近的密度越大。</p>
+
+<p>在group的过程中，用group中点密度倒数最大的值做归一化，之后作为特征输入。</p>
+
+<p>公式简化中，
+\(\begin{equation}
+\begin{aligned}
+\mathbf{F}_{\text {out }} &amp;=\sum_{k=0}^{K-1} \sum_{c_{i n}=0}^{C_{i n}-1}\left(\widetilde{\mathbf{F}}_{\mathbf{i n}}\left(k, c_{i n}\right) \sum_{c_{m i d}=0}^{C_{\operatorname{mid}}-1}\left(\mathbf{M}\left(k, c_{m i d}\right) \mathbf{H}\left(c_{m i d}, c_{i n}\right)\right)\right) \\
+&amp;=\sum_{c_{i n}=0}^{C_{i n}-1} \sum_{c_{m i d}=0}^{C_{m i d}-1}\left(\mathbf{H}\left(c_{m i d}, c_{i n}\right) \sum_{k=0}^{K-1}\left(\widetilde{\mathbf{F}}_{\mathbf{i n}}\left(k, c_{i n}\right) \mathbf{M}\left(k, c_{m i d}\right)\right)\right) \\
+&amp;=\operatorname{Conv}_{1 \times 1}\left(\mathbf{H}, \widetilde{\mathbf{F}}_{\mathbf{i n}}^{T} \mathbf{M}\right)
+\end{aligned}
+\end{equation}\)</p>
+
+<p>相当于用FM矩阵中的每一个元素对对应的H(cmid,cin)向量进行加权，并最终求和，本质上就相当于一个全连接层，也就是一个conv1*1。代码中也是这么实现的。</p>
+:ET

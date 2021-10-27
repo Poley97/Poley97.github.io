@@ -1,0 +1,144 @@
+I"�"<blockquote>
+  <p>论文链接： https://openaccess.thecvf.com/content/CVPR2021/html/Xie_Style-Based_Point_Generator_With_Adversarial_Rendering_for_Point_Cloud_Completion_CVPR_2021_paper.html</p>
+</blockquote>
+
+<p>本文提出了一种Style-based Point Generator with Adversarial Rendering。</p>
+
+<h1 id="introduction">Introduction</h1>
+<p>如今3D点云已经非常常见，但是由于有限的传感器分辨率以及遮挡，原始的点一般是稀疏并且不完整的。因此从不完整的数据中推测完整的形状是对下游任务是很必要的。</p>
+
+<p>现有的点云补全方法基本遵照一个encoder-decoder模型，并且使用具有顺序不变形的Loss(Permutation invariant losses)，比如Chamfer Distance或者Earth Mover’s Distance。</p>
+
+<p>理论上，点云补全网络应该满足三个需求：</p>
+<ul>
+  <li>保留部分输入中的完整结构信息</li>
+  <li>有足够的想象力来通过局部的线索来推断完整的形状</li>
+  <li>局部结果应该sharp accurate and free from 噪声的感染。现有方法都不满足上面鸡条，因为他们忽视了global context，导致模型对于结构细节的信息不足。</li>
+</ul>
+
+<p>于是本文提出了 Style-based Point generator with Adversarial REndering, i.e., the SpareNet。主要包含三个模块：<strong>channel-attentive EdgeConv, Style-based Point Generator, and Adversarial Point Rendering</strong></p>
+
+<ul>
+  <li>由于PointNet PointNet++只能提取近邻的信息，因此本文使用edgeconv来捕捉更多的全局信息。</li>
+  <li>原始的fold module中直接concatenated 限制了模型的能力，由于不当的利用特征。一次你这里将学习的特征作为style codes。</li>
+  <li>为了产生视觉友好的，将点云投影到不同视角的2D，然后来进行discriminate。并产生对应的梯度用于学习。</li>
+</ul>
+
+<p><img src="/assets/img/20210719/SpareNetF1.png" alt="" /></p>
+
+<h1 id="the-sparenet">The SpareNet</h1>
+
+<p>SpareNet的总体结构如上所示，首先对于输入的部分并且低分辨率的点云X进行粗补全，得到coarse point cloud Yc。其中生成网络通过对X进行编码得到shape code g，并以此来生成点云。之后再经过一个refine阶段，引入adversarial point rendering来进一步优化粗糙的点云，得到最终的完整，高分辨率的，具有不错visual quality的点云。</p>
+
+<h2 id="channel-attentive-edgeconv">Channel-Attentive EdgeConv</h2>
+
+<p>本结构受到EdgeConv的启发。对于输入点云，根据欧氏距离寻找K近邻，之后根据点以及与近邻的相对距离建立edge$\left(p_{i}, q_{i}^{j}-p_{i}\right)$，并通过一个MLP来计算新的特征$\mathbf{F}<em>{1}\left(p</em>{i}, q_{i}^{j}-p_{i}\right)$</p>
+
+<p>为了计算global特征，将全部的边做一个全局平均，然后送到第二个MLP中，如下。
+\(\begin{equation}
+\boldsymbol{\eta}=\sigma \circ \mathbf{F}_{2}\left[\frac{1}{k M} \times \sum_{i, j}^{M, k} e_{i}^{j}\right]
+\end{equation}\)</p>
+
+<p>之后用$\eta$对每个edge进行加权，之后通过max pooling和relu来削减维度，变为点特征。总体如下图所示</p>
+
+<p><img src="/assets/img/20210719/SpareNetF2.png" alt="" /></p>
+
+<p>本文中的encoder又上述的 CAE blocks 四个串联组成。最后将所有点特征cat起来，通过MLP来削减维度。最后的 shape code 通过 global pooling和 average pooling两者的结果cat得到。</p>
+
+<h2 id="style-based-point-generator">Style-based Point Generator</h2>
+
+<p>之前的folding方法将shape code tiled and concatenated with N 2D cooridnates。之后学习一个映射将这种组合映射到3D空间。但是作者认为这样shapecode只是决定了输入特征之后的这个映射，而不能影响输入特征之前的东西。因此限制了其表达3D 表面的能力。</p>
+
+<p>收到StyleGAN的启发，提出了一个 style-based folding。直接将shape code g注入到生成器G的中间层，来保证更广泛的信息被融入到点云中。</p>
+
+<p>style-based folding 的功能是在shape code g的调制下，将输入特征转换为新的输出点特征。首先，对输入特征做归一化</p>
+
+\[\begin{equation}
+\overline{\mathbf{h}}_{i n}=\frac{\mathbf{h}_{i n}-\mu_{\mathbf{h}_{i n}}}{\boldsymbol{\sigma}_{\mathbf{h}_{i n}}}
+\end{equation}\]
+
+<p>之后通过shape code g来动态的加权和偏移。
+\(\begin{equation}
+\mathbf{h}_{\text {out }}=\gamma_{\mathbf{g}} \otimes \overline{\mathbf{h}}_{i n}+\beta_{\mathbf{g}}
+\end{equation}\)</p>
+
+<p>与之前的ref[11,21]一样，同样部署K个表面来组成一个复杂的形状。</p>
+
+<p>其结构如下所示</p>
+
+<p><img src="/assets/img/20210719/SpareNetF3.png" alt="" /></p>
+
+<h2 id="adversarial-point-rendering">Adversarial Point Rendering</h2>
+
+<p>这个结构可以使得refinement保证一个更好的visual quality。这里的Point rendering 指的是一个完全可微的，端到端的 renderer。它使得训练的监督可以不仅仅在point domain上，也可以再image domain上。</p>
+
+<h3 id="renderer">Renderer</h3>
+
+<p>对于输入点云P和相机Pose v，point renderer的目标就是产生一个2D深度图，来反应P在v视角下的几何情况。这个投影的原理如下图所示，首先将每个点转换为到投影平面的深度，并将每个点视为一个平滑的二维高斯分布，分别投影到投影平面上，并取max得到最后的图像。即</p>
+
+\[\begin{equation}
+I_{x, y}^{v}(P)=\max _{p \in P}\left\{\Psi\left(\left\|(x, y), \hat{p}^{v}\right\|_{2}\right) \times F_{p}, 0\right\}
+\end{equation}\]
+
+<p>F是一个归一化因子。
+<img src="/assets/img/20210719/SpareNetF4.png" alt="" /></p>
+
+<p>之后使用multi-view renderer $/pi$，同时将点投影到8个不同的视角，得到8个深度图。实验中2D深度图的尺寸是256*256，8个点分别是边长为2的正方体的8个角。</p>
+
+<h3 id="refiner">Refiner</h3>
+<p>包括一个minimum density sampling 以及一个集成 residual residual network，并加入了CAE模块。</p>
+
+<h3 id="discriminator">Discriminator</h3>
+<p>使用 cGAN strategy :the real sample is a concatenation of $\pi(Y_{gt})$ and$\pi(X)$ in channel dimension; the fake sample is a concatenationof  $\pi(Y_{r}^1)$ and$\pi(X)$ 并使用一系列的2D 卷积， spectral normalizations and LeakyReLU。</p>
+
+<h2 id="training-losses">Training Losses</h2>
+
+<p>使用Earth Mover’s Distance ，而不是更常见的Chamfer Distance。同时对粗糙重建的点云和refine的点云做监督。这用来衡量输出和GT之间的差异</p>
+
+\[\begin{equation}
+\mathcal{L}_{\text {rec }}=d_{\text {EMD }}\left(Y_{c}, Y_{g t}\right)+d_{\text {EMD }}\left(Y, Y_{g t}\right)
+\end{equation}\]
+
+<p>fidelity loss用来衡量输入和输出的差异，即目的是保留输入的结构特征。
+\(\begin{equation}
+\mathcal{L}_{f d}=\frac{1}{|X|} \sum_{p \in X} \min _{q \in Y}\|p-q\|_{2}^{2}
+\end{equation}\)</p>
+
+<p>同时也引入了图像域的监督，depth map matching loss 和 feature matching loss。</p>
+
+\[\begin{equation}
+\begin{array}{r}
+\mathcal{L}_{\text {depth }}=\frac{1}{8 H W}\left\|\boldsymbol{\pi}\left(Y_{r}^{1}\right), \boldsymbol{\pi}\left(Y_{g t}\right)\right\|_{1} \\
+\mathcal{L}_{\text {fea }}=\sum_{i}^{4} \frac{\alpha_{i}}{H_{i} W_{i} D_{i}}\left\|\mathrm{D}_{i}\left[\boldsymbol{\pi}\left(Y_{r}^{1}\right)\right], \mathrm{D}_{i}\left[\boldsymbol{\pi}\left(Y_{g t}\right)\right]\right\|_{2}^{2}
+\end{array}
+\end{equation}\]
+
+<p>对上述LOSS加权得到最终的loss</p>
+
+\[\begin{equation}
+\begin{aligned}
+\mathcal{L}=&amp; w_{r e c} \mathcal{L}_{r e c}+w_{f d} \mathcal{L}_{f d}+w_{\text {depth }} \mathcal{L}_{\text {depth }}+\\
+&amp; w_{f e a} \mathcal{L}_{f e a}+w_{a d v} \mathcal{L}_{a d v}+w_{\exp } \mathcal{L}_{e x p}
+\end{aligned}
+\end{equation}\]
+
+<h1 id="experiments">Experiments</h1>
+
+<p><img src="/assets/img/20210719/SpareNetT1.png" alt="" /></p>
+
+<p>我个人认为结果的成图还是挺漂亮的</p>
+
+<p><img src="/assets/img/20210719/SpareNetF5.png" alt="" /></p>
+
+<h1 id="code">Code</h1>
+
+<p>Gan网络的输入是均匀$[0,1]^2$的采样网格。每有一个primitives，就输入一个网格。每个primitives共享一个生成网络，也就是每一个grid单独输入，产生同样数量的3D点。每个primitives产生的点拼接在一起，成为最终的输入。也就是不同的Primitives代表了3d形状的不同子结构。</p>
+
+<p>Style-based folding在代码中表现为 assign_adain_params函数，其直接使用输入变量作为一个全连接层的权重，如图3所示。</p>
+
+<p>在refine中，使用了文献[21]中的MDS采样，以及相关的方法。经过对生成点的采样，通过res网络预测偏移，得到refine的输出。重复两遍。</p>
+
+<p>LOSS全部使用emd loss，同样出自文献[21]。</p>
+
+<p>Render在程序里是可选的。两个Render的loss是通过判别器建立，而非某种度量。</p>
+:ET

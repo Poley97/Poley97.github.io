@@ -1,0 +1,111 @@
+I"n<p>Transformer已经呗广泛的应用于NLP，并且在CV上也展现出了潜力。PCT的主要思想是利用Transformer内在的<strong>order invariance</strong>来避免对点云数据顺序定义的需要，并且通过attention机制来学习点云的特征。如下图所示，attention 权重的分布和 part semantics高度相关，并且并不随着空间距离的整张和减弱。</p>
+
+<p><img src="/assets/img/20210824/PCTF1.png" alt="" /></p>
+
+<p>主要创新有三个</p>
+
+<ul>
+  <li>
+    <p><strong>Coordinate-based input embedding module</strong>：Transformer里使用位置编码来区分相同词在不同位置的区别。而点云则是无需的。这里代替NLP中的位置，而使用坐标进行embedding来产生distinguishable features。</p>
+  </li>
+  <li>
+    <p><strong>Optimized offset-attention module</strong>：  使用相对位置代替绝对位置，用于attention。一是由于刚性变换会导致绝对坐标的剧烈变化，二是拉普拉斯矩阵已经被证明在图卷积学习中非常有效。<strong>从这个角度出发，可以认为点云是具有’float’邻接矩阵的图，也就是attention map。</strong></p>
+  </li>
+  <li>
+    <p><strong>Neighbor embedding module</strong>： 句子中每个独立的词都有他自己的基本语义，但是点云中独立的点坐标却不具有这个性质（弱相关）。Attention适合于捕捉全局信息，而忽略了局部信息，而局部信息在点云中是很关键的，因此提出一个近邻embedding方法来帮助attention来关注点云的局部区域，而局部区域是包含基本语义信息的，不像单独的点。</p>
+  </li>
+</ul>
+
+<p>PCT的结构如下所示</p>
+
+<p><img src="/assets/img/20210824/PCTF2.png" alt="" /></p>
+
+<p>Encoder处使用4个attention modele，并将特征级联得到最后的编码输出，如下。</p>
+
+\[\begin{equation}
+\begin{aligned}
+\boldsymbol{F}_{1} &amp;=\operatorname{AT}^{1}\left(\boldsymbol{F}_{e}\right) \\
+\boldsymbol{F}_{i} &amp;=\mathrm{AT}^{i}\left(\boldsymbol{F}_{i-1}\right), \quad i=2,3,4 \\
+\boldsymbol{F}_{o} &amp;=\operatorname{concat}\left(\boldsymbol{F}_{1}, \boldsymbol{F}_{2}, \boldsymbol{F}_{3}, \boldsymbol{F}_{4}\right) \cdot \boldsymbol{W}_{o}
+\end{aligned}
+\end{equation}\]
+
+<p>在编码全局特征的过程中，同时使用了max-pooling和average-pooling两种方法。</p>
+
+<p>对于分类，就简单的通过两侧LBRs+dropout来完成。对于分割，类似于PointNet，将全局特征与点特征连接起来，通过全连接层输出。两个网络基本相同，只是dropout的配置略有区别。</p>
+
+<p>作者首先直接照搬了transformer到点云中来。首先只利用点云的3维坐标作为输入，转换为128维特征（模仿词嵌入），之后直接进行Transformer的标准操作。
+\(\begin{equation}
+\begin{aligned}
+(\boldsymbol{Q}, \boldsymbol{K}, \boldsymbol{V}) &amp;=\boldsymbol{F}_{i n} \cdot\left(\boldsymbol{W}_{q}, \boldsymbol{W}_{k}, \boldsymbol{W}_{v}\right) \\
+\boldsymbol{Q}, \boldsymbol{K} &amp; \in \mathbb{R}^{N \times d_{a}}, \quad \boldsymbol{V} \in \mathbb{R}^{N \times d_{e}} \\
+\boldsymbol{W}_{q}, \boldsymbol{W}_{k} &amp; \in \mathbb{R}^{d_{e} \times d_{a}}, \quad \boldsymbol{W}_{v} \in \mathbb{R}^{d_{e} \times d_{e}}
+\end{aligned}
+\end{equation}\)
+以及
+\(\begin{equation}
+\tilde{\boldsymbol{A}}=(\tilde{\alpha})_{i, j}=\boldsymbol{Q} \cdot \boldsymbol{K}^{\mathrm{T}}
+\end{equation}\)
+\(\begin{equation}
+\begin{aligned}
+&amp;\bar{\alpha}_{i, j}=\frac{\tilde{\alpha}_{i, j}}{\sqrt{d_{a}}} \\
+&amp;\alpha_{i, j}=\operatorname{softmax}\left(\bar{\alpha}_{i, j}\right)=\frac{\exp \left(\bar{\alpha}_{i, j}\right)}{\sum_{k} \exp \left(\bar{\alpha}_{i, k}\right)}
+\end{aligned}
+\end{equation}\)
+\(\begin{equation}
+\boldsymbol{F}_{s a}=\boldsymbol{A} \cdot \boldsymbol{V}
+\end{equation}\)</p>
+
+<p>注意到，上述无论是对于输入特征的线性变换，以及softmax和weighted sum，都是 <strong>order independent and permutation-independent</strong>的，因此其固有特征很适合处理无序化的数据，<strong>比如点云</strong>。</p>
+
+<p>最后通过一个LBR层来得到最终的输出
+\(\begin{equation}
+\boldsymbol{F}_{\text {out }}=\operatorname{SA}\left(\boldsymbol{F}_{\text {in }}\right)=\operatorname{LBR}\left(\boldsymbol{F}_{s a}\right)+\boldsymbol{F}_{\text {in }}
+\end{equation}\)</p>
+
+<p>图卷积网络中提出使用拉普拉斯矩阵代替邻接矩阵会有更好的效果，这里参考了这种思想，提出<strong>使用offset-attention来代替原始的self-attention</strong>,来提升网络的性能。offset-attention框图如下所示</p>
+
+<p><img src="/assets/img/20210824/PCTF3.png" alt="" /></p>
+
+<p>主要改变在最后一步利用LBR对attention输出进行变换上，这里使用残差值代替原本的attention输出值，如下</p>
+
+\[\begin{equation}
+\boldsymbol{F}_{\text {out }}=\mathrm{OA}\left(\boldsymbol{F}_{\text {in }}\right)=\operatorname{LBR}\left(\boldsymbol{F}_{\text {in }}-\boldsymbol{F}_{s a}\right)+\boldsymbol{F}_{\text {in }}
+\end{equation}\]
+
+<p>进一步可以分解为
+\(\begin{equation}
+\begin{aligned}
+\boldsymbol{F}_{i n}-\boldsymbol{F}_{s a} &amp;=\boldsymbol{F}_{i n}-\boldsymbol{A} \boldsymbol{V} \\
+&amp;=\boldsymbol{F}_{i n}-\boldsymbol{A} \boldsymbol{F}_{i n} \boldsymbol{W}_{v} \\
+&amp; \approx \boldsymbol{F}_{i n}-\boldsymbol{A} \boldsymbol{F}_{i n} \\
+&amp;=(\boldsymbol{I}-\boldsymbol{A}) \boldsymbol{F}_{i n} \approx \boldsymbol{L} \boldsymbol{F}_{i n}
+\end{aligned}
+\end{equation}\)</p>
+
+<p>这忽略W，因为其是一个线性层的权重矩阵。这样上式就变成了一个拉普拉斯矩阵的形式，而$A$矩阵中的权重越大，证明两者的亲和度越高，这个层面上可以将$A$理解成邻接矩阵$E$,进而得到拉普拉斯矩阵的含义。</p>
+
+<p>同样，也对应修改了$A$的归一化形式，改为双归一化
+\(\begin{equation}
+\begin{aligned}
+&amp;\bar{\alpha}_{i, j}=\operatorname{softmax}\left(\tilde{\alpha}_{i, j}\right)=\frac{\exp \left(\tilde{\alpha}_{i, j}\right)}{\sum_{k} \exp \left(\tilde{\alpha}_{k, j}\right)} \\
+&amp;\alpha_{i, j}=\frac{\bar{\alpha}_{i, j}}{\sum_{k} \bar{\alpha}_{i, k}}
+\end{aligned}
+\end{equation}\)</p>
+
+<p>和原始的归一化方法相比，这种方法得到的权重<strong>更加尖锐，而受到噪声的影响更小，对下游任务更有好处</strong>。</p>
+
+<p>上述PCT可以高效的提取全局特征，但是无法提取局部特征。收到PointNet++和DGCNN的启发，本文设计了一个neighbor embedding的策略来优化 point embedding来强化PCT对于局部特征的提取能力。如下图所示</p>
+
+<p><img src="/assets/img/20210824/PCTF4.png" alt="" /></p>
+
+<p>使用了两个LBG和两个SG(sampling and grouping)。具体的特征转换过程可以表述为如下形式</p>
+
+\[\begin{equation}
+\begin{aligned}
+\Delta \boldsymbol{F}(p) &amp;=\operatorname{concat}_{q \in \operatorname{knn}(p, \mathcal{P})}(\boldsymbol{F}(q)-\boldsymbol{F}(p)) \\
+\widetilde{\boldsymbol{F}}_{(p)} &amp;=\operatorname{concat}(\Delta \boldsymbol{F}(p), \operatorname{RP}(\boldsymbol{F}(p), k)) \\
+\boldsymbol{F}_{s}(p) &amp;=\mathrm{MP}(\operatorname{LBR}(\operatorname{LBR}(\widetilde{\boldsymbol{F}}(p))))
+\end{aligned}
+\end{equation}\]
+:ET

@@ -88,7 +88,7 @@ PointNet。为了提供permutation invariance（排列不变形）,使用了对�
 Pointnet++，为了克服PointNet的缺点而提出，通过**Set Abstraction layer**解决。同样也被用于calssification, region proposal 和 segmentation。
 ## segment-wise
 
-先将点云分割成若干个空间尺度的scenes，然后再提取特征，典型的就是**Voxel Feature Extractor**。和点特征提取不同，这种特征往往直接用于volumetric representation of the point cloud，比如voxels,pillars or frustums。使用这种特征提取的算法有VoxelNe, Second, Voxel-FPN, and HVNet.
+先将点云分割成若干个空间尺度的scenes，然后再提取特征，典型的就是**Voxel Feature Extractor**。和点特征提取不同，这种特征往往直接用于volumetric representation of the point cloud，比如voxels,pillars or frustums。使用这种特征提取的算法有VoxelNet, Second, Voxel-FPN, and HVNet.
 
 虽然segment-wise和point-wise关联性很强，**但是segment-wise的特征效率更高，更鲁邦（因为用了一组点而不是一个），允许提取更复杂的3D局部形状信息**。
 
@@ -300,7 +300,7 @@ Anchorless的方法相比rpn-based的需要的内存更低，因为不用定义�
 ![](/assets/img/20210526/PCReviewT8.png)
 
 
-# Reasearch chanllenges and oppotunities
+# Research challenges and opportunities
 
 ## On the sparsity of the data and on the extraction of features
 

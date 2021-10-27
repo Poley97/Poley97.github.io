@@ -1,0 +1,64 @@
+I"�<p>本文在Dropout的基础上引入了正则化，添加双向KL散度损失，使得不同的dropout结果分布尽可能相似。</p>
+
+<p>其示意图如下图所示
+<img src="/assets/img/20210809/RDropF1.png" alt="" /></p>
+
+<p>其损失由两部分组成，分别是传统的nll loss
+\(\begin{equation}
+\mathcal{L}_{n l l}=\frac{1}{n} \sum_{i=1}^{n}-\log \mathcal{P}^{w}\left(y_{i} \mid x_{i}\right)
+\end{equation}\)</p>
+
+<p>和新的KL散度Loss</p>
+
+\[\begin{equation}
+\mathcal{L}_{K L}^{i}=\frac{1}{2}\left(\mathcal{D}_{K L}\left(\mathcal{P}_{1}^{w}\left(y_{i} \mid x_{i}\right) \| \mathcal{P}_{2}^{w}\left(y_{i} \mid x_{i}\right)\right)+\mathcal{D}_{K L}\left(\mathcal{P}_{2}^{w}\left(y_{i} \mid x_{i}\right) \| \mathcal{P}_{1}^{w}\left(y_{i} \mid x_{i}\right)\right)\right)
+\end{equation}\]
+
+<p>加权求和得到最后的L</p>
+
+\[\begin{equation}
+\begin{aligned}
+\mathcal{L}^{i}=\mathcal{L}_{N L L}^{i}+\alpha \cdot \mathcal{L}_{K L}^{i}=&amp;-\log \mathcal{P}_{1}^{w}\left(y_{i} \mid x_{i}\right)-\log \mathcal{P}_{2}^{w}\left(y_{i} \mid x_{i}\right) \\
+&amp;+\frac{\alpha}{2}\left[\mathcal{D}_{K L}\left(\mathcal{P}_{1}^{w}\left(y_{i} \mid x_{i}\right) \| \mathcal{P}_{2}^{w}\left(y_{i} \mid x_{i}\right)\right)+\mathcal{D}_{K L}\left(\mathcal{P}_{2}^{w}\left(y_{i} \mid x_{i}\right) \| \mathcal{P}_{1}^{w}\left(y_{i} \mid x_{i}\right)\right)\right]
+\end{aligned}
+\end{equation}\]
+
+<p>算法流程如下</p>
+
+<p><img src="/assets/img/20210809/RDropA1.png" alt="" /></p>
+
+<p>作者提出，R-Drop增强训练可以表示为如下的约束优化问题</p>
+
+\[\begin{equation}
+\begin{aligned}
+&amp;\min _{w} \frac{1}{n} \sum_{i=1}^{n} \mathbb{E}_{\xi}\left[-\log \mathcal{P}_{\xi}^{w}\left(y_{i} \mid x_{i}\right)\right] \\
+&amp;\text { s.t. } \left.\quad \frac{1}{n} \sum_{i=1}^{n} \mathbb{E}_{\xi^{(1)}, \xi^{(2)}}\left[\mathcal{D}_{K L}\left(\mathcal{P}_{\xi^{(1)}}^{w}\left(y_{i} \mid x_{i}\right) \| \mathcal{P}_{\xi^{(2)}}^{w}\left(y_{i} \mid x_{i}\right)\right)\right)\right]=0
+\end{aligned}
+\end{equation}\]
+
+<p>和没有dropout的模型相比，可以认为dropout通过限制模型的雅克比矩阵来限制模型的复杂度。下面的proposition提出 KL 散度约束可以通过减少参数的自由度来进一步的约束模型的复杂度。</p>
+
+<p><img src="/assets/img/20210809/RDropP2.png" alt="" /></p>
+
+<p>注：实际上上述严格的约束带来了对神经网络参数自由度的限制。所以，将上述约束优化问题转换成优化问题，寻找具有最小自由度的参数，使得nllloss最小，可以避免过拟合同时增加泛化能力。</p>
+
+<p>在附录中，作者有对上述对自由度的限制进行论证。笔者此处没有完全理解。</p>
+
+<p>假设两个网络只有一个隐藏节点不同，并且满足散度等于0的约束，那么这两个隐藏节点一定有</p>
+
+\[\begin{equation}
+h_{i}^{l}=h_{j}^{l}, \forall x
+\end{equation}\]
+
+<p>如果不满足，则一定可以构造出x输的其两者输出不等。上述推断出自结论</p>
+
+<p><img src="/assets/img/20210809/RDropm1.png" alt="" /></p>
+
+<p>由于两个网络的其他hidden nodes都相同，因此两个不同的hidden nodes可以视为通过相同的输入得到，即</p>
+
+\[\begin{equation}
+h_{i}^{l}=\sigma\left(\tilde{w}_{i}^{l} \tilde{h}^{l-1}\right), h_{j}^{l}=\sigma\left(\tilde{w}_{j}^{l} \tilde{h}^{l-1}\right)
+\end{equation}\]
+
+<p>其中两个参数分别是通过不同的dropout得到的，则可以得到两个参数相等。以此推广到全部的子结构上，可以得到相同层中所有的参数都是相等的。（这里的dropout是直接去固定数量的点，而不是按概率取）。由此，这种约束直接限制了参数的自由度。</p>
+:ET

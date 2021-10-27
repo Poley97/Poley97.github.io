@@ -1,0 +1,100 @@
+I"�<blockquote>
+  <p>论文链接：https://arxiv.org/abs/2012.10412</p>
+</blockquote>
+
+<p>主要创新：</p>
+
+<ul>
+  <li>提出一种点云补全方法，用来为密集点恢复高质量的proposal,并且保留了全部的原始结构。</li>
+  <li>一个图神经网络，全面的捕捉点之间的关系，通过一个Local-global attention mechanism，以及一个multi-scale graph based context aggregation。</li>
+</ul>
+
+<h1 id="introduction">Introduction</h1>
+<p>现如今的方法在3D目标检测上体现出了很大的潜力，性能也在不断提升。但是他们对于低质量的输入点云的情况下往往会失败，比如稀疏，以及部分遮挡的点云数据。这在现实中非常常见。比如PointRCNN在远距离和正当情况下会丢失很多目标，这来源于两个原因：</p>
+<ul>
+  <li>目标3D检测器的点云表示对于采样密度和采样完整性的large variations处理的并不好</li>
+  <li>PointNet-like 的网络作为backbone使得3D目标检测器能力不足，不能充分利用所给的点云。</li>
+</ul>
+
+<p>本文提出PC-RGNN，首先通过3D proposal generation 模块来产生Bounding box candidates。由于目标通常洗漱并且部分采样，因此使用一个point cloud completion 模块来恢复具有密集点的高质量proposals。最后，通过一个图神经网络AMS-GNN来做refine，捕捉形状特性。AMS-GNN以结合multi-scale graphs 以及通过local-global attention学习邻居之间的不同权重的方法来aggreagte contextual clues。
+<img src="/assets/img/20210710/PC-RGNNF1.png" alt="" /></p>
+<h1 id="related-work">Related work</h1>
+<p>大部分略了</p>
+
+<h2 id="point-cloud-completion-method">Point cloud completion method</h2>
+<p>大多使用GAN网络来进行3D点云补全，从partial point cloud inputs中。本文中是第一次将3D点云补全的方法改良并应用的3D目标检测当中，来解决物体遮挡和稀疏的问题。</p>
+
+<h1 id="pc-rgnn">PC-RGNN</h1>
+<h2 id="framework">Framework</h2>
+<p>三部分</p>
+<ul>
+  <li>3D proposal generation</li>
+  <li>point cloud completion</li>
+  <li>attention based multi-scale graph neural network representation
+<img src="/assets/img/20210710/PC-RGNNF2.png" alt="" /></li>
+</ul>
+
+<h2 id="3d-proposal-generation">3D Proposal Generation</h2>
+
+<p>采用类似PointRCNN的方法，但是anchor-free。</p>
+
+<h2 id="point-cloud-completion">Point Cloud Completion</h2>
+<p>为了解决稀疏和不完整的问题，提出了点云补全模块。与一般的3D shape generation or reconstruction方法输出全新的点云不同，本方法只提供额外的点作为辅助，而不改变原有的输入，来保留原始的空间排布。</p>
+
+<p><img src="/assets/img/20210710/PC-RGNNF3.png" alt="" /></p>
+
+<p>主要分为三部分，上图所示</p>
+<ul>
+  <li>Multi-Resolution Graph Encoder(MRGE)</li>
+  <li>Point Pyramid Decoder(PPD)</li>
+  <li>Discriminator Network</li>
+</ul>
+
+<p>本模块首先通过降采样来获得两个或者更多的views，并且通过GCN来提取他们的特征，最终获得Final Feature Vector V。之后类似于FPN，进行一个降维，一共三个全连接层。最高层预测最模糊的点，之后每个模糊点再进一步衍生出更准确的点。如上图所示。最后通过Chamfer Distance来衡量重建点和真值的近似程度。并通过一个Adversaial loss来进一步使他们相似。</p>
+
+<p>Chamfer Distance如下
+\(\begin{equation}
+\begin{aligned}
+d_{C D}\left(S_{1}, S_{2}\right)=&amp; \frac{1}{S_{1}} \sum_{x \in S_{1}} \min _{y \in S_{2}}\|x-y\|_{2}^{2} \\
+&amp;+\frac{1}{S_{2}} \sum_{y \in S_{2}} \min _{x \in S_{1}}\|y-x\|_{2}^{2}
+\end{aligned}
+\end{equation}\)</p>
+
+<p>每一层都要做，但权重可以调整，如下</p>
+
+\[\begin{equation}
+\begin{aligned}
+L_{c o m}=&amp; \alpha d_{C D 1}\left(Y_{\text {coarse }}, Y_{g t}^{\prime}\right)+2 \alpha d_{C D 2}\left(Y_{\text {middle }}, Y_{g t}^{\prime \prime}\right) \\
+&amp;+d_{C D 3}\left(Y_{\text {fine }}, Y_{g t}\right)
+\end{aligned}
+\end{equation}\]
+
+<p>最后是经典的对抗损失</p>
+
+\[\begin{equation}
+L_{a d v}=\sum_{1 \leq i \leq S} \log \left(D\left(y_{i}\right)\right)+\sum_{1 \leq i \leq S} \log \left(1-D\left(F\left(x_{i}\right)\right)\right)
+\end{equation}\]
+
+<h2 id="attention-based-multi-scale-gnn">Attention based Multi-Scale GNN</h2>
+
+<p>为了完整的对shape characteristics 进行编码，本文作者设计了一种新的图神经网络。其加强了之前GCN对于多尺度的context信息提取能力，以及基于注意力的关键点判别，因此成为AMS-GNN。</p>
+
+<p>其包含了4层AMS-GCN，以及一层GA层。每个AMS-GCN层都包含一个multi-scale graph aggregation和一个local attention。</p>
+
+<p>将每个点看成vertices，将点之间的链接看做edges，就建立了图。</p>
+
+<p>与GCN不同，由于目标检测任务更加复杂，需要回归目标的位置，<strong>并且在不同位置的点对于最终结果的贡献度不同</strong>，因此这里选择<strong>动态的去适应目标的几何形状</strong>也就是在aggregating edge features的时候自动的去学习每个邻居之间的权重。得到的公式结果如下</p>
+
+\[\begin{equation}
+\begin{aligned}
+&amp;\Delta p_{i}{ }^{t}=M L P_{1}^{t}\left(s_{i}^{t}\right) \\
+&amp;e_{i j}^{t}=M L P_{2}^{t}\left(\operatorname{concat}\left(p_{j}-p_{i}+\Delta p_{i}^{t}, s_{j}^{t}-s_{i}^{t}, s_{i}^{t}\right)\right) \\
+&amp;\alpha_{i j}^{t}=\operatorname{softmax}\left(M L P_{3}^{t}\left(e_{i j}^{t}\right)\right)=\frac{\exp \left(M L P_{3}^{t}\left(e_{i j}^{t}\right)\right)}{\sum_{k \in N_{i}} \exp \left(M L P_{3}^{t}\left(e_{i k}^{t}\right)\right)} \\
+&amp;s_{i}^{t+1}=\operatorname{sum}\left(\alpha_{i j}^{t} e_{i j}^{t} \mid(i, j) \in E\right)
+\end{aligned}
+\end{equation}\]
+
+<p>由于即使是同一类别，点云的离散分布也不尽相同，因此这使得图节点学习到的特征对于图分辨率和连接关系非常敏感。为了解决这个问题，作者将多尺度的图contextual features连接起来，接一个local attention。最后再做一个attention来对最后的global feature加权。这可以加强监测的效果（没说原因。）</p>
+<h1 id="experiments">Experiments</h1>
+<p><img src="/assets/img/20210710/PC-RGNNT1.png" alt="" /></p>
+:ET

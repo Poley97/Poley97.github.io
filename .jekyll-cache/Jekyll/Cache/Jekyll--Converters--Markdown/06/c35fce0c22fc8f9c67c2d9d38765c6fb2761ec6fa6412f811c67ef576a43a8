@@ -1,0 +1,98 @@
+I"<blockquote>
+  <p>论文链接：http://openaccess.thecvf.com/content/CVPR2021/html/Qiao_DetectoRS_Detecting_Objects_With_Recursive_Feature_Pyramid_and_Switchable_Atrous_CVPR_2021_paper.html
+参考博客：https://zhuanlan.zhihu.com/p/145897444</p>
+</blockquote>
+
+<p>许多现代目标检测器通过使用<strong>两次looking和thinking</strong>的机制，表现了出色的性能。在本文中，作者探索了用于目标检测的backbone设计中的这种机制。</p>
+
+<p><strong>在宏观层面上</strong>，作者提出了<strong>递归特征金字塔（RFP，Recursive Feature Pyramid）</strong>，它结合了从特征金字塔网络到自下而上的backbone层的额外反馈连接。
+<strong>在微观层面上</strong>，作者提出了<strong>可切换的空洞卷积（SAC，Switchable Atrous Convolution）</strong>，它以不同的atrous rate对特征进行卷积，并使用switch函数收集结果。</p>
+
+<h1 id="introduction">Introduction</h1>
+
+<p>许多目标检测器都使用 looking and thinking twice的机制，比如two-stage detectors。遵循这种理念，<strong>本文探索这种理念在目标检测backbone上的设计。并且同时从宏观和微观上应用了这种理念</strong>，得到了本文提出的DetectoRS，显著的提升了SOAT(HTC网络)。</p>
+
+<p>在宏观上，提出了RFP，它结合了从特征金字塔网络到自下而上的backbone层的额外反馈连接。将recursive结构展开成一个序列操作，我们就可以得到一个将看过输入图像两次或者更多的目标检测backbone。类似于Cascade R-CNN通过不断选择的example来训练，RFP也recursively的增强FPN来产生越来越强的representation。这种feedback connection直接将gradients传递到底层特征，来加快训练，以及Boost performance。<strong>这是一种looking and thinking twice的设计，这个botton-up backbone可以运行多次，基于他们之前得到的特征</strong>。本文在FPN中还应用了<strong>Atrous Spatial Pyramid Pooling (ASPP)</strong>来进一步丰富FPN的特征。</p>
+
+<p>在微观上，提出了SAC，使用不同的atrous rates对相同的input feature进行卷积，并使用switch functions来融合结果。这些switch functions 是 spatially dependent的，比如feature map的同一位置可能有不同的选择控制SAC的输出。作者将所有的标准3*3卷积都替换成了SAC，大大提升了性能。</p>
+
+<p>与其他的条件卷积不同，SAC可以不必从零开始训练，而可以使用标准卷积在Imagenet上的预训练。SAC使用全局信息以及一个全新的weight locking mechanism使得它更加高效。</p>
+
+<p><img src="/assets/img/20210720/DetectoRSF1.png" alt="" /></p>
+
+<h1 id="recursive-feature-pyramid">Recursive Feature Pyramid</h1>
+<h2 id="feature-pyramid-networks">Feature Pyramid Networks</h2>
+<p>传统的FPN可以表示为如下形式</p>
+
+<p>\(\begin{equation}
+\mathbf{f}_{i}=\mathbf{F}_{i}\left(\mathbf{f}_{i+1}, \mathbf{x}_{i}\right), \quad \mathbf{x}_{i}=\mathbf{B}_{i}\left(\mathbf{x}_{i-1}\right)
+\end{equation}\)</p>
+<h2 id="recursive-feature-pyramid-1">Recursive Feature Pyramid</h2>
+
+<p>可以表示为如下形式</p>
+
+\[\begin{equation}
+\mathbf{f}_{i}=\mathbf{F}_{i}\left(\mathbf{f}_{i+1}, \mathbf{x}_{i}\right), \quad \mathbf{x}_{i}=\mathbf{B}_{i}\left(\mathbf{x}_{i-1}, \mathbf{R}_{i}\left(\mathbf{f}_{i}\right)\right)
+\end{equation}\]
+
+<p>将其展开为序列形式，可以得到
+\(\begin{equation}
+\mathbf{f}_{i}^{t}=\mathbf{F}_{i}^{t}\left(\mathbf{f}_{i+1}^{t}, \mathbf{x}_{i}^{t}\right), \mathbf{x}_{i}^{t}=\mathbf{B}_{i}^{t}\left(\mathbf{x}_{i-1}^{t}, \mathbf{R}_{i}^{t}\left(\mathbf{f}_{i}^{t-1}\right)\right)
+\end{equation}\)</p>
+
+<p>其中$f_i^0$设定为0。其中$F,R$都是共享的，$B$可以共享也可以不共享。最终使用的是共享的$B,T=2$。
+两种FPN的对比如下图所示
+<img src="/assets/img/20210720/DetectoRSF2.png" alt="" /></p>
+
+<p>对Resnet每个stage的第一个block做了改动，如下所示。
+<img src="/assets/img/20210720/DetectoRSF3.png" alt="" /></p>
+
+<p>为了使用feedback的特征，加了一个分支用于连接feedback和bottom-up路径。</p>
+
+<p>使用Atrous Spatial Pyramid Pooling (ASPP)来连接$R$,将特征$f$转换为RFP特征。</p>
+
+<h2 id="output-update-by-the-fusion-module">Output Update by the Fusion Module</h2>
+
+<p>使用RPF来融合两个不同时间上的$f$，如下图所示。这和RNN中的更新非常相似。
+<img src="/assets/img/20210720/DetectoRSF5.png" alt="" /></p>
+
+<h1 id="switchable-atrous-convolution">Switchable Atrous Convolution</h1>
+<h2 id="atrous-convolution">Atrous Convolution</h2>
+<p>一种有效的拓展滤波器视野区域的方法， atrous rate r会在两个连续的卷积位置之间引入r-1个0，使得一个k*k的卷积变为$k_e=k+(k-1)(r-1)$。</p>
+
+<h2 id="switchable-atrous-convolution-1">Switchable Atrous Convolution</h2>
+
+<p>结构如下图所示
+<img src="/assets/img/20210720/DetectoRSF4.png" alt="" /></p>
+
+<p>在SAC模块的前后均有一个global context。SAC可以表示如下</p>
+
+\[\begin{equation}
+\begin{aligned}
+\operatorname{Conv}(\mathrm{x},&amp;\mathrm{w}, 1) \frac{\text { Convert }}{\text { to } \mathrm{SAC}} \mathbf{S}(\mathrm{x}) \cdot \operatorname{Conv}(\mathrm{x}, \mathrm{w}, 1) \\
++&amp;(1-\mathrm{S}(\mathrm{x})) \cdot \mathbf{C o n v}(\mathrm{x}, \mathrm{w}+\Delta \mathrm{w}, r)
+\end{aligned}
+\end{equation}\]
+
+<p>即两个不同的Atrous rate的分支通过S函数进行加权。如上图所示。<strong>可以看出，这个switch函数S是和输入以及位置有关的，所以Backbone就可以去适应其需要的不同尺度</strong>。</p>
+
+<p>同时引入了一个locking mechanism，即使用w作为atrous conv分支的基础权重，再加一个$\Delta w$，这是由于为了检测器往往使用预训练参数，但是SAC layer缺没有云训练参数。因为不同尺度的目标都可以被粗糙的检测到，通过相同尺度，不同atrous rates的卷积，所以很自然的使用这些预训练权重作为atrous conv的权重。加上$\Delta w$会略微提升性能，但是如果不用$w$(也就是不用lock mechanism)会显著降低性能。</p>
+
+<h2 id="global-context">Global Context</h2>
+
+<p>结构和SENET很相似，但是又不完全相同</p>
+
+<ul>
+  <li>这里的卷积层没有用激活</li>
+  <li>这里的是加到原数据上，而不是对原数据加权（乘）</li>
+</ul>
+
+<h2 id="implementation-details">Implementation Details</h2>
+
+<p><strong>使用可变形卷积(Deformable convolution,DCN)来代替了SAC中的卷积操作</strong>。而SAC由代替了正常的3*3j卷积。也就是Backbone中的卷积都是DCN。并且SAC中两个卷积的offset并没有共享。</p>
+
+<h1 id="experiments">Experiments</h1>
+<p><img src="/assets/img/20210720/DetectoRSF6.png" alt="" /></p>
+
+<p><img src="/assets/img/20210720/DetectoRST4.png" alt="" /></p>
+:ET

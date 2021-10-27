@@ -1,0 +1,51 @@
+I"<p>本文提出一种利用对抗样本攻击目标检测模型中非极大值抑制（NMS）的方法。NMS已经是目标检测模型的标配，因此本方法可以攻击众多目标检测模型而无需知道受害模型的参数。方法可以有效的阻止NMS过滤到冗余的框。</p>
+
+<p>Daedalus是致力于通过breaking NMS来降低目标检测性能，这里的breaking指的是让NMS无法过滤掉多余的框，即大量提高FP的数量。同时，Daedalus是一个黑盒攻击。此方法在本文中选用了一系列经典模型进行实验，包括YOLO-v3,SSD,RetinaNet,Mask R-CNN.</p>
+
+<p>通用的对抗样本攻击通过梯度来优化干扰$\delta$。</p>
+
+\[\begin{gathered}
+\underset{\delta}{\operatorname{argmin}} &amp; |\delta|_{p}+c \cdot L(F(x+\delta), y) \\
+\text { s.t. } &amp; x+\delta \in[0,1]^{n}
+\end{gathered}\]
+
+<p><img src="/assets/img/20211008/DaedalusF2.png" alt="" /></p>
+
+<h1 id="nms的脆弱性">NMS的脆弱性</h1>
+<p><strong>一旦IOU被抑制到NMS过滤所需的阈值以下，NMS将无法正常工作。在这种情况下，大多数冗余边界框将保留在最终检测结果中</strong>。</p>
+
+<p>因此，有三个部分被考虑用于攻击OD。</p>
+<ul>
+  <li>尽可能提升bbox的置信度，使其不会被在NMS之前被过滤掉</li>
+  <li>尽可能减小目标框之间的IOU</li>
+  <li>亦或尽可能让检测框小，而检测框之间的距离大</li>
+</ul>
+
+<p>为了限制优化的像素在$[0,1]$之间，使用tanh函数对优化变量进行一下转换
+\(\delta_{i}=\frac{1}{2}\left(\tanh \left(\omega_{i}\right)+1\right)-x_{i}\)</p>
+
+<p>作者设计了三个损失函数如下。
+\(\begin{aligned}
+&amp;f_{1}=\frac{1}{\|\Lambda\|} \sum_{\lambda \in \Lambda} \underset{i: \operatorname{argmax}\left(p_{i}\right)=\lambda}{\mathbb{E}}\left\{\left[b_{i}^{0} \cdot \max \left(p_{i}\right)-1\right]^{2}\right.\\
+&amp;\left.+\underset{j: \operatorname{argmax}\left(p_{j}\right)=\lambda}{\mathbb{E}} I o U_{i j}\right\}\\
+&amp;f_{2}=\frac{1}{\|\Lambda\|} \sum_{\lambda \in \Lambda} \underset{i: \operatorname{argmax}\left(p_{i}\right)=\lambda}{\mathbb{E}}\left\{b_{i}^{0} \cdot \max \left(p_{i}\right)-1\right]^{2}\\
+&amp;+\left(\frac{b_{i}^{w} \cdot b_{i}^{h}}{W \times H}\right)^{2}+\underset{j: \operatorname{argmax}\left(p_{j}\right)=\lambda}{\mathbb{E}}\\
+&amp;\left.\times \frac{1}{\left(b_{i}^{x}-b_{j}^{x}\right)^{2}+\left(b_{i}^{y}-b_{j}^{y}\right)^{2}}\right\}\\
+&amp;f_{3}=\frac{1}{\|\Lambda\|} \sum_{\lambda \in \Lambda} \underset{i: \operatorname{argmax}\left(p_{i}\right)=\lambda}{\mathbb{E}}\left\{\left[b_{i}^{0} \cdot \max \left(p_{i}\right)-1\right]^{2}\right.\\
+&amp;\left.+\left(\frac{b_{i}^{w} \cdot b_{i}^{h}}{W \times H}\right)^{2}\right\}
+\end{aligned}\)</p>
+
+<p>上述损失的含义比较简单，第一项是最大化每个Box的confidence，使其尽可能接近1。之后则是尽可能拉远Box之间的距离或者最小化其IoU。</p>
+
+<p>但是逐对计算所有的box计算成本比较大，所以推出了简化版的$f_3$使用维度均值而不直接计算每个IoU。</p>
+
+<p>为了对抗黑盒模型，作者同时推出了<strong>an ensemble of popular OD models</strong>,即同时使用经典的目标检测模型进行训练，平均他们的Loss，得到泛用的对抗模型。</p>
+
+<p><img src="/assets/img/20211008/DaedalusA2.png" alt="" /></p>
+
+<p>实际攻击效果如下</p>
+
+<p><img src="/assets/img/20211008/DaedalusF13.png" alt="" /></p>
+
+<p>可以看到其通过大量的FP使得原检测算法几乎完全失效，同时在画面上与原图没有明显的区别。</p>
+:ET

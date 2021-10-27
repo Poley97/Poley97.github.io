@@ -1,0 +1,57 @@
+I"W<blockquote>
+  <p>论文链接： https://www.aaai.org/AAAI21Papers/AAAI-4341.YangX.pdf</p>
+</blockquote>
+
+<p>提出一个Two-stage的GAN网络，从随机的隐生成点云，称为Controllable Point Cloud Generative Adversarial Network，并包含一个稀疏的，包含结构信息的点云来作为两个阶段的中间层信息。得益于这个，CPCGAN可以控制生成的结构，并通过指定的语义标签来生成点云。</p>
+<h1 id="introduction">Introduction</h1>
+
+<p>这其中对以前之前的点云GAN网络和补全网络做了介绍，有需要的话可以参考一下相关的论文。</p>
+
+<p>本网络分为两个stage。The first-stage GAN 将 random latent code作为输入，并输出一个带标签的稀疏点云，成为structure point cloud。The second-stage GAN 将第一阶段的输出作为输入并且产生完整的point cloud，通过对每个structure point ， breeding一定数量的新点。</p>
+
+<p><img src="/assets/img/20210717/CPCGANF1.png" alt="" /></p>
+
+<h1 id="proposed-method">Proposed Method</h1>
+
+<h2 id="overview">Overview</h2>
+<p>如上图所示，输入一个96维的向量，输出2048*3点云，以及一个2048维的Semantic labels。而中间层，structure point cloud是32*3的的点云，以及32维的标签。</p>
+
+<h2 id="data-preprocessing">Data preprocessing</h2>
+
+<p>使用ShapeNet-Partseg(Chang et al. 2015）训练。样本都采样到2048个点。</p>
+
+<h2 id="structure-gan">Structure GAN</h2>
+
+<p>通过MLP将输入转换为256维向量，再用FC转换为32*3的点，同时用另一个FC转换得到32*c的得分。之后送入一个PointNet架构的discriminator。但是，这会使得生成的点都聚在一起，也就是分布不对。这是由于PointNet中使用的max-pooling实际上忽略了点的空间分布，因此使用了global average-pooling来替换。</p>
+
+<h2 id="final-gan">Final GAN</h2>
+
+<p>同样适用一个PointNet-like的网络，但是加入了Delta和self-attention来提升性能。由于PointNet对点的处理都是各点独立的，因此点之间的信息交互(data transformation)是必须的，因此引入了self-attention。</p>
+
+<p>之后，每个点产生64个点在周围，完成点云补全。提出了一种新的方法，成为Delta来breed the structure point cloud。使用32个共享权重的MLP来Breed新点（相对坐标）。</p>
+
+<p><img src="/assets/img/20210717/CPCGANF2.png" alt="" /></p>
+
+<p><img src="/assets/img/20210717/CPCGANT1.png" alt="" /></p>
+
+<h2 id="loss-function">Loss Function</h2>
+
+<p>使用了 Wasserstein GAN的损失函数+gradient penalty。</p>
+
+\[\begin{equation}
+\begin{array}{r}
+L_{G_{s}}=-\mathbb{E}_{z \sim Z}\left[D_{s}\left(G_{s}(z)\right)\right] \\
+L_{D_{s}}=\mathbb{E}_{z \sim Z}\left[D_{s}\left(G_{s}(z)\right)\right]-\mathbb{E}_{x_{s} \sim R_{s}}\left[D_{s}\left(x_{s}\right)\right] \\
++\lambda_{g p} \mathbb{E}_{\hat{x}_{s}}\left[\left(\left\|\nabla_{\hat{x}_{s}} D_{s}\left(\hat{x_{s}}\right)\right\|_{2}-1\right)^{2}\right] \\
+L_{G_{f}}=-\mathbb{E}_{z \sim Z}\left[D_{f}\left(G_{f}(z)\right)\right] \\
+L_{D_{f}}=\mathbb{E}_{z \sim Z}\left[D_{f}\left(G_{f}(z)\right)\right]-\mathbb{E}_{x_{f} \sim R_{f}}\left[D_{f}\left(x_{f}\right)\right] \\
++\lambda_{g p} \mathbb{E}_{\hat{x_{f}}}\left[\left(\left\|\nabla_{\hat{x_{f}}} D_{s}\left(\hat{x_{f}}\right)\right\|_{2}-1\right)^{2}\right]
+\end{array}
+\end{equation}\]
+
+<h2 id="controllable-generation-method">Controllable Generation method</h2>
+
+<p>使用第一阶段训练所用的真值（真structure points）输入final gan就可以得到预期的固定类别的点的补全点云。</p>
+
+<p><img src="/assets/img/20210717/CPCGANF3.png" alt="" /></p>
+:ET

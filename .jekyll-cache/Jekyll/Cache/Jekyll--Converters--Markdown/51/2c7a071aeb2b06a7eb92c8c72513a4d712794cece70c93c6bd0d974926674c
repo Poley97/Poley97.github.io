@@ -1,0 +1,3 @@
+I"J<p>本文提出 Detection Transformer(DERT),实现端到端的目标检测，同时无需想传统的目标检测方法一样，使用大量的人工设定的超参数以及前后处理方法。结果如下图嗾使，可以<strong>predicts all objects at once</strong>。
+<img src="/assets/img/20210830/DERTF1.png" alt="" /></p>
+:ET

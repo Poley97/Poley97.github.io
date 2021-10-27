@@ -1,0 +1,2 @@
+I"H<p>本文作者提出anchor-based 和 anchor-free检测方法的本质券别在于<strong>如何定义正负训练样本</strong>。本文使用RetinaNet以及FCOS做了对比实验，并最终提出了<strong>Adaptive Training Sample Selection (ATSS)</strong>来自动的通过目标的统计特性来选择正负样本。</p>
+:ET

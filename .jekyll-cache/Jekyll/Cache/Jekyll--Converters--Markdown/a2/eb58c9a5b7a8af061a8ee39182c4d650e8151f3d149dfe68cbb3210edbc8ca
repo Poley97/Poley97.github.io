@@ -1,0 +1,2 @@
+I"8<p>设计了一个图，其中的节点对应物体实例的instance proposal-level features ，边对应节点之间的关系。通过定义一个自适应的背景损失权重来减小节点噪声，以及剪枝。之后将整个图作为encoded knowledge representation ， 从teacher向 student传递。</p>
+:ET

@@ -1,0 +1,33 @@
+I"<p>本文是一篇非常经典的文章，用于卷积网络的可视化。</p>
+
+<p>卷积层本身具有很强的定位能力，但是当使用全连接层进行分类时，这种能力丢失了。而很多全卷积网络的出现改变了一点，在减小参数量的同时保持了高性能。</p>
+
+<p>全局平均池化(global average pooling)最早作为一种结构正则化出现。但是在本文，作者发现全局平均池化的好处不仅仅在正则，通过一些小修改，网络就可以将其定位能力保持到最后一层，使得更容易对图像的discriminative image regions进行判断，仅需一次前向传播。 如下所示</p>
+
+<p><img src="/assets/img/20210820/CAMF1.png" alt="" /></p>
+
+<h1 id="class-activation-mapping">Class Activation Mapping</h1>
+
+<p>本文利用global average pooling来创建 class activation maps(CAM)</p>
+
+<p>其主要流程如下</p>
+
+<p><img src="/assets/img/20210820/CAMF2.png" alt="" /></p>
+
+<p>其使用一个类似于 GoogLeNet的网络，也就是包含大量的卷积层的网络。然后在最终的输出之前，坐着加入了一个global average pooling ，在卷积feature maps上，并且使用这些作为全连接层的输入，处理得到最终的输出。在确定连接关系之后，可以通过将输出层的权重投影回卷积feature maps来决定图像区域的重要性。这里被称为class activation mapping。
+即通过每个feaature map 做完global average pooling 连接到每一个输出节点的权重作为这个feature map对于这个类别的响应权重，如上图所示。</p>
+
+<p>类别的得分通过全连接层得到，这里忽略了Bias
+\(\begin{equation}
+S_{c}=\sum_{k} w_{k}^{c} \sum_{x, y} f_{k}(x, y)=\sum_{x, y} \sum_{k} w_{k}^{c} f_{k}(x, y)
+\end{equation}\)</p>
+
+<p>由此，class activation map可以通过对应的权重加权得到</p>
+
+\[\begin{equation}
+M_{c}(x, y)=\sum_{k} w_{k}^{c} f_{k}(x, y)
+\end{equation}\]
+
+<p><img src="/assets/img/20210820/CAMF3.png" alt="" />
+<img src="/assets/img/20210820/CAMF4.png" alt="" /></p>
+:ET

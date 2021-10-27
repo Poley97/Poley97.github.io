@@ -1,0 +1,107 @@
+I"�!<blockquote>
+  <p>论文链接 ： http://openaccess.thecvf.com/content/CVPR2021/html/Zheng_SE-SSD_Self-Ensembling_Single-Stage_Object_Detector_From_Point_Cloud_CVPR_2021_paper.html</p>
+</blockquote>
+
+<p>SE-SSD包含一对老师和学生SSD，并且设计了一套有效的IOU-based匹配策略来过滤soft targets，并且通过一个consisitency loss来让学生网络的预测和它们align。同时设计了一种新的增强策略，shape-aware augmented samples，训练学生网络，鼓励其来Infer complete object shapes。最后提出了一个ODIoU Loss(Orientation-aware Distance-IoU)，来更好的利用hard targets。类似于SA-SSD和Associate-3Ddet，这也是一种辅助task的思想。</p>
+
+<p><img src="/assets/img/20210717/SESSDF1.png" alt="" /></p>
+
+<h1 id="introduction">Introduction</h1>
+<p>目前很多方法可以提取出点云更好的特征，但是带来的复杂度太高，尤其是两阶段方法。在实际应用中，检测方法需要有很快的速度以及很高的精度。SASSD和Associate-3Ddet都是通过辅助网络来加强特征，同时不引入额外的计算量，本文也采取了这个思路。</p>
+
+<p>相比手动标注的hard targets，来自 teacher 的 soft targets往往具有更高的熵，可以提供更多的信息给 students 来学习。因此，我们同时利用soft和hard target，以及本文的formulated constraints来联合优化模型。为了鼓励student预测的结果和soft targets align，设计了一个有效的IoU-based matching strategy来配对他们，并且用一个consisitency loss 来减小他们之间的misalignment。</p>
+
+<p>同时，设计了一个新的增强策略，让student可以探索更大的数据空间。通过这个策略，我们鼓励模型来推断完整的目标形状，从不完整的信息当中。</p>
+
+<p><img src="/assets/img/20210717/SESSDF2.png" alt="" /></p>
+
+<h1 id="self-ensembling-single-stage-detector">Self-Ensembling Single Stage Detector</h1>
+<h2 id="overall-framework">Overall Framework</h2>
+
+<p>同时训练两个相同结构的SSD，学生网络通过数据增强来探索更大的数据空间，同时保证其soft targets的性能和teacher对齐。</p>
+
+<p>主要分为两条路径，如上图所示</p>
+
+<ul>
+  <li>路径1，蓝色。teacher产生相对准确的预测，从原始点云中。通过一组global transformations on prediction results 然后 将他们作为 soft targets 来监督student SSD。</li>
+  <li>路径2，绿色。以同样的global transformations来增强，同时加上shape aware data augmentation来训练student，并舒勇consisitency loss来 align predictions。并且使用hard targets来单独监督学生网络，通过orientation-aware distance-IoU loss。</li>
+</ul>
+
+<p>训练时轮流更新两者，先更新学生，在通过 Exponential moving average(EMA)来更新后者。也就是teacher可以通过这样的方法来得到蒸馏的信息。故称为<em>self-ensembling single-stage object detector</em>。</p>
+
+<h2 id="architecture-of-teacher--student-ssd">Architecture of Teacher &amp; Student SSD</h2>
+
+<p>结构和CIA-SSD一样。略</p>
+
+<h2 id="consistency-loss">Consistency Loss</h2>
+<p>3D目标检测中，在pre-defined anchors中的点云patterns可能会根据距离以及目标遮挡情况的不同而显著变化。所以相同的hard targets可能会有非常不同的点patterns以及特征。相比这下，soft targets可以提供更多的信息，可以帮助揭示相同类别不同数据之间的区别。这趋势我们利用teacher的soft targest以及单独的hard target来联合优化students。</p>
+
+<p>在Consistency loss之前，首先设计了一个IoU-based matching策略，来寻找两者配对的prediction。首先通过一个阈值来过滤得到soft target，再通过一个IoU阈值来判断两者的匹配。相比hard targets, filtered soft targets和student prediction更接近，因为他们是基于相似的特征预测的。因此这个可以更好的利于student的fine-tune，同时减小gradient variance。</p>
+
+<p>相比IOU Loss,Smooth L1 Loss可以更公平的对待每一个预测值，而没有偏好。因此这里使用Smooth-L1z作为Consistency Loss,对回归和分类各有一个Loss。</p>
+
+<p>\(\begin{equation}
+\begin{gathered}
+\mathcal{L}_{\text {box }}^{c}=\frac{1}{N^{\prime}} \sum_{i=1}^{N} \mathbb{1}\left(I o U_{i}&gt;\tau_{I}\right) \sum_{e} \frac{1}{7} \mathcal{L}_{\delta_{e}}^{c} \\
+\text { and } \delta_{e}= \begin{cases}\left|e_{s}-e_{t}\right| &amp; \text { if } e \in\{x, y, z, w, l, h\} \\
+\left|\sin \left(e_{s}-e_{t}\right)\right| &amp; \text { if } e \in\{r\}\end{cases}
+\end{gathered}
+\end{equation}\)
+\(\begin{equation}
+\begin{aligned}
+\mathcal{L}_{c l s}^{c} &amp;=\frac{1}{N^{\prime}} \sum_{i=1}^{N} \mathbb{1}\left(I o U_{i}&gt;\tau_{I}\right) \mathcal{L}_{\delta_{c}}^{c} \\
+\text { and } \delta_{c}=&amp;\left|\sigma\left(c_{s}\right)-\sigma\left(c_{t}\right)\right|
+\end{aligned}
+\end{equation}\)</p>
+
+<h2 id="orientation-aware-distance-iou-loss">Orientation-Aware Distance-IoU Loss</h2>
+
+<p><img src="/assets/img/20210717/SESSDF3.png" alt="" /></p>
+
+<p>Smooth-L1 Loss对于各个参数都均匀的回归。但是对于远距离的点，由于稀疏性以及存在的遮挡，稀疏的几个点可能并不能为BBOX回归的每一个维度都提供足够的信息。因此提出了ODIoU,用于对hard target的回归中，强化对于方向和目标中心的回归。从实验来看，对检测结果有显著的提升，即更容易从由物体表面的点推断。</p>
+
+\[\begin{equation}
+\mathcal{L}_{b o x}^{s}=1-\operatorname{IoU}\left(B_{p}, B_{g}\right)+\frac{c^{2}}{d^{2}}+\gamma(1-|\cos (\Delta r)|)
+\end{equation}\]
+
+<p>其中最后一部分是角度的回归。可以看到其图形如下，在0和pi出损失最小，此时框和gt对其，在+-pi/2时最大，此时框的方向和gt成90度。同时，其梯度随着角度差异的变大而变大，因此更有利于目标框快速的从$/Delta r$向附近的最小值收敛。
+<img src="/assets/img/20210717/SESSDF4.png" alt="" /></p>
+
+<p>总loss如下，其中两个bbox loss分别是对hard target和soft target的。</p>
+
+\[\begin{equation}
+\mathcal{L}_{\text {student }}=\mathcal{L}_{\mathrm{cls}}^{s}+\omega_{1} \mathcal{L}_{\text {box }}^{s}+\omega_{2} \mathcal{L}_{\mathrm{dir}}^{s}+\mu_{t}\left(\mathcal{L}_{\mathrm{cls}}^{c}+\mathcal{L}_{\text {box }}^{c}\right)
+\end{equation}\]
+
+<h2 id="shape-aware-data-augmentation">Shape-Aware Data Augmentation</h2>
+<p><img src="/assets/img/20210717/SESSDF5.png" alt="" /></p>
+
+<p>对GT框内的点云根据表面分为6个子集，然后在进行上图中的种种操作，形成最终的增强结果。主要包括</p>
+
+<ul>
+  <li>Random dropout</li>
+  <li>Random swap</li>
+  <li>Random sparsify</li>
+</ul>
+
+<h1 id="experiments">Experiments</h1>
+<p><img src="/assets/img/20210717/SESSDT1.png" alt="" /></p>
+
+<h2 id="code">Code</h2>
+
+<p>关于Shape-Aware Data Augmentation数据增强，实际上是通过将box分为6个Frustum来进行下采样的，这样使得可以分别对每个面进行采样。这样对于内点的判断会比较复杂，实现是通过3D点在凸多面体中的判断方法来判断的（通过面的法向量）。</p>
+
+<p>Dropout，实现方法为每个Frustum中随机丢弃。
+Sparsify,实现方法为每个Frustum中做iterative farthest point sampling(ifp)，相当于做均匀采样。</p>
+
+<p>实现中，Dropout,Sparsify和Swap都是单独增强的，即一个Box只使用一次增强。</p>
+
+<p>Swap中，除了要交换点的位置，同时也要对反射强度做响应的更改。但是由于各个box的大小和距离均有区别，直接交换是不合理的。
+作者这里是通过交换点在原box中的归一化反射强度，来复原在新Box中的反射强度。而点则是使用其在原Frustrum中的相对位置来表示的。具体方法是以底面（正方形的面）中心作为原点，建立一个坐标系，得到点在坐标系内的归一化坐标，再映射到新的Frustum里。</p>
+
+<p>本文实现的另一个重点就是本文的数据和loss，在Dataloader上，同时引入了给出了两种数据，分别给两个模型使用。分别是简单增强的数据，喂给teacher，以及shape aware 增强的数据，喂给students。</p>
+
+<p>在consistence loss上，由于要用到$sin(e_t-e_s)$，作者巧妙的直接将两者的角度值提前转换为sin(a)cos(b)和sin(b)cos(a)的形式，直接用L1 loss。</p>
+
+<p>teacher模型的参数更新使用指数滑动平均(exponential moving average , EMA)，在每个iter后进行。</p>
+:ET

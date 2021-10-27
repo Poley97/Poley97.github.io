@@ -1,0 +1,27 @@
+I"�<blockquote>
+  <p>论文链接： https://www.aaai.org/AAAI21Papers/AAAI-4979.WeiW.pdf</p>
+</blockquote>
+
+<p>个人感觉这篇文章内容不多，主要提出了Semantic Consistency Loss</p>
+
+<p><img src="/assets/img/20210721/SCNF1.png" alt="" /></p>
+
+<p>Semantic Consistency 的意思就是如上图所示，目标框内的点的语义分割结果应该和框的分类结果所一致。这样才能得到最好的分类结果。
+<img src="/assets/img/20210721/SCNF2.png" alt="" /></p>
+
+<p>提出的网络结构如上所示，基本就是在VoteNet上加了一个分割分支，如下所示。
+<img src="/assets/img/20210721/SCNF3.png" alt="" /></p>
+
+<p>分割分支包括两部分，一个是对Geometrical的预测，也就是对预测每个点的Vote。另一个是语义预测，也就是预测每个点的标签。之后将两者concatenate到一起，得到一个输出结果。</p>
+
+<p>之后就是本文的Semantic Consistency Loss部分，其主要思想就是让框和其中的点有一致的类别。直接搜索框中的点速度比较慢，这里直接取以框中心的一个球，做近邻搜索，速度快很多。之后通过衡量框和点的置信度区别，来衡量两者的一致性，如下。</p>
+
+<p>\(\begin{equation}
+L_{\mathrm{css}}=\frac{\sum_{i=1}^{Q_{r}} \sum_{j=1}^{n}\left\|p_{i}-s_{j}\right\|_{1}}{n \times Q_{r}}
+\end{equation}\)
+<img src="/assets/img/20210721/SCNF4.png" alt="" /></p>
+
+<p>最终性能上也没有明显的优势
+<img src="/assets/img/20210721/SCNT1.png" alt="" /></p>
+
+:ET

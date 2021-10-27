@@ -1,0 +1,2 @@
+I"2<p>Transforms 已经在NLP里应用广泛，但是由于其$O(n^2)$的复杂度，并不适合直接应用于图像中的像素。本文将图像切割成patchs，并且提供线性的embeddings对这些patch，当作Transforms的输入。也就是将Image patchs当作NLP应用中的token来处理。</p>
+:ET
