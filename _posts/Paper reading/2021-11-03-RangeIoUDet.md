@@ -1,7 +1,7 @@
 ---
 layout: post
-title: 'End-to-End Multi-View Fusion for 3D Object Detection in LiDAR Point Clouds'
-date: 2021-11-02
+title: 'RangeIoUDet: Range Image based Real-Time 3D Object Detector Optimized by Intersection over Union'
+date: 2021-11-03
 author: Poley
 cover: '/assets/img/20211101/RangeIoUDet.png'
 tags: 论文阅读
