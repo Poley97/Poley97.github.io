@@ -61,6 +61,10 @@ pip换源
 
 > https://mirrors.tuna.tsinghua.edu.cn/help/pypi/
 
+仍然有些包需要使用默认源安装，可以使用
+```
+pip install [module] -i https://pypi.org/simple
+```
 ```
 conda config --set remote_connect_timeout_secs 40
 conda config --set remote_read_timeout_secs 100
